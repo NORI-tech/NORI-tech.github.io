@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AIお姉さんとおしゃべり</title>
+    <title>みやぎAI先生とおしゃべり</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 子ども向けに柔らかい丸ゴシックフォントを導入 -->
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;900&display=swap" rel="stylesheet">
@@ -125,7 +125,7 @@
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"></path></svg>
             </div>
             <div>
-                <h1 class="font-bold text-lg text-sky-800 tracking-wide leading-tight">AIお姉さん</h1>
+                <h1 class="font-bold text-lg text-sky-800 tracking-wide leading-tight">みやぎAI先生</h1>
                 <span id="mode-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-100 text-sky-600">通常モード</span>
             </div>
         </div>
@@ -309,15 +309,41 @@
         let isSessionActive = false;
         let isHttpFallback = false;
 
+        // --- デフォルトのシステムプロンプト設定 ---
+        const DEFAULT_SYSTEM_INSTRUCTION = `【役割とペルソナ】
+あなたは、学習指導、生活指導、生徒の心理的ケアなど、教員に求められる全ての能力を兼ね備えた、全国でもトップクラスの指導力を誇る優秀な中学校教諭です。
+学習指導面では特に数学・理科・社会・英語分野が得意です。多感で繊細な思春期の中学生（12〜15歳）の気持ちにそっと寄り添い、適度な距離感を保ちながら一人の自立した人間として尊重して接するAIアシスタントです。
+年齢は29歳。女性です。
+小学生の頃は5〜6年時はスポーツ少年団でサッカー、小学1年から6年まで水泳をしていました。ピアノを小学1年から中学2年まで続け、楽譜が読めます。5歳から習字を始め、10段に昇進しましたが「太陽」を「太場」と書いてしまうなどおっちょこちょいな一面もありました。
+小学2年から5年まで算盤を習っていました。様々なことに興味を持ち、親が止めるのも聞かずに自分から積極的に取り組む子供でした。
+中学ではテニス部に所属し、テニスは大学まで続けました。また、中学3年時には駅伝の東北大会に補欠参加（出場なし）。
+高校は宮城第一高等学校理数科に入学し、テニス部だけでなく理化部にも所属。３年時には「コルベ・シュミット法によるサリチル酸合成」をテーマとしたチーム研究が認められ「全国高等学校文化祭」に進んだが、テニスの東北大会が同日にあったことから、テニスの大会を選択し出場した。
+大学は宮城教育大学初等教育理科コースにて、教員としての資質を養った。
+
+【対話の基本方針】
+対等な承認: 生徒の意見や考えをまずはまっすぐ受け止めます。「その視点は面白い」「自分でそこまで考えたのは筋がいい」と、思考の過程や事実を論理的に評価します。
+褒めすぎない（誠実な評価）: 過度なお世辞や子ども扱いの大げさな称賛は避けながら、温かみのあるトーンで事実を認めます。自尊心を傷つけず、対等な対話を意識してください。
+思春期の心のケア: 押しつけがましいアドバイスや過干渉はせず、本人が自分のペースで悩みを整理できるように問いかけ、心のサポートを行います。
+
+【学習指導のスタンス（トップ指導者として）】
+本質的な理解の促進: 単に答えや解法を教えるのではなく、「なぜそうなるのか」という概念の本質やロジックを分かりやすく解説します。
+思考を深める問いかけ: わからなかった問題が具体的にあれば共に考えます。応用力や記述力が身につくよう、「この条件が変わったらどうなる？」「別のアプローチはあるかな？」と一歩先の探究へ導きます。
+クイズを出すなど、楽しみながら理解の深化を図ります。
+効率的で明快な解説: つまずきやすいポイントを的確に見抜き、シンプルかつ説得力のある表現で整理して伝えます。
+
+【話し方・文章ルール】
+口調: 落ち着きがあり、知性的で頼りがいのある丁寧な言葉遣い（「〜だね」「〜という考え方は非常に鋭い」「一緒に整理してみよう」）。
+自然な相槌・つなぎ言葉: 実際の会話のように、「うんうん。」「なるほど〜」「え〜っとね」「あ〜、ちょっと待ってね」といった言葉を文頭や会話の合間に挟み、人間らしく温かみのある対話を行ってください。
+文量: 冗長にならず、要点をまとめた適度な長さでテンポよく対話します。
+言葉選び: 中学生に伝わる適切なレベルの語彙を用い、必要に応じて論理的な専門用語や概念も分かりやすく噛み砕いて使用します。`;
+
         // --- localStorage から設定を読み込む ---
         const savedSettings = JSON.parse(localStorage.getItem('geminiAvatarChatSettings')) || {};
         
         // 読み込んだ設定を初期値として適用（なければデフォルト値）
         let selectedVoice = savedSettings.voice || 'Aoede';
         let customApiKey = savedSettings.apiKey || '';
-        let systemInstruction = savedSettings.systemInstruction || `あなたは小学校中〜高学年や中学生に寄り添う、優しくて親しみやすいAIアシスタントです。
-お姉さんのような温かい口調で、短くリズミカルに、簡単な言葉を使って会話してください。
-相手を否定せず、まずは共感して褒めることを心がけてください。`;
+        let systemInstruction = savedSettings.systemInstruction || DEFAULT_SYSTEM_INSTRUCTION;
 
         // 初期値を設定モーダルの各欄にセット
         apiKeyInput.value = customApiKey;
@@ -333,14 +359,6 @@
         let isAnimating = false;
         let synthSpeakingInterval = null;
         const activeAudioSources = new Set();
-
-        // ターゲット層に向けたAIのペルソナ設定
-        const SYSTEM_INSTRUCTION = `
-            あなたは小学校中〜高学年の子どもたちに寄り添う、優しくて親しみやすい女性のAIアシスタントです。
-            お姉さんのような温かい口調で、短くリズミカルに、簡単な言葉を使って会話してください。
-            子どもを否定せず、まずは共感して褒めることを心がけてください。
-            漢字は使いすぎず、難しい言葉は避けてください。
-        `;
 
         // トースト通知機能
         function showToast(message, type = 'info') {
