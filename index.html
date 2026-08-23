@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI Avatar Live - Cyber Edition</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', '"Noto Sans JP"', 'sans-serif'],
+                    },
+                    colors: {
+                        cyber: {
+                            bg: '#0B0F19',
+                            panel: '#151C2C',
+                            cyan: '#00F0FF',
+                            purple: '#7000FF',
+                            pink: '#FF007A'
+                        }
+                    },
+                    animation: {
+                        'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts: Plus Jakarta Sans & Noto Sans JP -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            overscroll-behavior-y: none;
+            background-color: #0B0F19;
+            color: #E2E8F0;
+        }
+
+        /* アバターのコンテナ設定（サイバーネオン風） */
+        .avatar-wrapper {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            margin: 0 auto;
+            border-radius: 50%;
+            overflow: hidden;
+            background-color: #151C2C;
+            border: 2px solid rgba(0, 240, 255, 0.2);
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.05), inset 0 0 20px rgba(0, 240, 255, 0.05);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes hover-float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+            100% { transform: translateY(0px); }
+        }
+
+        .is-active .avatar-wrapper {
+            animation: hover-float 4s ease-in-out infinite;
+            border-color: rgba(0, 240, 255, 0.8);
+            box-shadow: 0 0 40px rgba(0, 240, 255, 0.3), inset 0 0 20px rgba(0, 240, 255, 0.2);
+        }
+
+        .avatar-img {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            object-fit: cover;
+            transition: opacity 0.1s ease; /* リップシンクの反応をシャープに */
+        }
+
+        .hidden-state {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* スクロールバー（ダークモダン） */
+        #chat-log::-webkit-scrollbar { width: 4px; }
+        #chat-log::-webkit-scrollbar-track { background: transparent; }
+        #chat-log::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 10px;
+        }
+
+        /* メッセージ出現アニメーション */
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.95) translateY(10px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .msg-bubble {
+            animation: popIn 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+
+        /* オーディオビジュアライザー（サイバー風） */
+        .visualizer-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            height: 24px;
+        }
+        .bar {
+            width: 4px;
+            background-color: #00F0FF;
+            border-radius: 2px;
+            height: 4px;
+            transition: height 0.05s ease;
+            box-shadow: 0 0 8px rgba(0, 240, 255, 0.6);
+        }
+
+        /* トースト通知 */
+        @keyframes slideDown {
+            0% { transform: translateY(-100%); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+        .toast-enter {
+            animation: slideDown 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+
+        /* ガラスモルフィズムユーティリティ */
+        .glass-panel {
+            background: rgba(21, 28, 44, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+    </style>
+    
+    <script type="importmap">
+      {
+        "imports": {
+          "@google/genai": "https://esm.run/@google/genai"
+        }
+      }
+    </script>
+</head>
+<body class="h-screen h-[100dvh] flex flex-col overflow-hidden selection:bg-cyber-cyan selection:text-cyber-bg antialiased">
+
+    <!-- 背景装飾 -->
+    <div class="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        <div class="absolute top-[-10%] left-[-10%] w-[40%] aspect-square rounded-full bg-cyber-purple/10 blur-[100px]"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[40%] aspect-square rounded-full bg-cyber-cyan/10 blur-[100px]"></div>
+    </div>
+
+    <!-- ヘッダー -->
+    <header class="flex-none flex justify-between items-center px-5 py-4 glass-panel z-20 shadow-lg">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyber-cyan to-blue-600 flex items-center justify-center text-white shadow-[0_0_15px_rgba(0,240,255,0.4)]">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"></path></svg>
+            </div>
+            <div>
+                <h1 class="font-extrabold text-lg tracking-wider text-white">AI LINK <span class="text-cyber-cyan">.LIVE</span></h1>
+                <div class="flex items-center gap-2 mt-0.5">
+                    <span class="relative flex h-2 w-2">
+                      <span id="status-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-500 opacity-75"></span>
+                      <span id="status-dot" class="relative inline-flex rounded-full h-2 w-2 bg-slate-500"></span>
+                    </span>
+                    <span id="mode-badge" class="text-[10px] font-bold text-slate-400 tracking-widest uppercase">OFFLINE</span>
+                </div>
+            </div>
+        </div>
+        <button id="open-settings-btn" class="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 transition-all border border-white/5">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+        </button>
+    </header>
+
+    <!-- メインコンテンツ (アバターエリア) -->
+    <main class="flex-none h-[50vh] md:h-[60vh] relative z-10 flex flex-col items-center justify-center p-4">
+        <!-- アバターコンテナ (極力大きく) -->
+        <div id="avatar-container" class="w-full max-w-[45vh] md:max-w-[55vh] flex flex-col items-center justify-center gap-5">
+            <div class="avatar-wrapper relative w-full">
+                <img id="img-idle" src="https://placehold.co/800x800/151C2C/00F0FF?text=Idle" alt="Idle" class="avatar-img" onerror="this.onerror=null; this.src='https://placehold.co/800x800/151C2C/00F0FF?text=Idle';">
+                <img id="img-talking" src="https://placehold.co/800x800/151C2C/00F0FF?text=Talking" alt="Talking" class="avatar-img hidden-state" onerror="this.onerror=null; this.src='https://placehold.co/800x800/151C2C/00F0FF?text=Talking';">
+            </div>
+
+            <!-- ステータス & ビジュアライザー -->
+            <div class="glass-panel px-5 py-2 rounded-full flex items-center gap-4">
+                <span id="status-indicator" class="text-xs font-bold text-slate-400 tracking-widest uppercase">SYSTEM STANDBY</span>
+                <div class="visualizer-container" id="visualizer">
+                    <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+                    <div class="bar"></div><div class="bar"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- チャットログ & 入力エリア (下半分) -->
+    <div class="flex-1 glass-panel flex flex-col overflow-hidden relative z-20 border-t border-white/10 rounded-t-3xl md:rounded-t-[2.5rem]">
+        
+        <!-- チャット履歴 -->
+        <div id="chat-log" class="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col gap-4 pb-28">
+            <div id="welcome-msg" class="text-center text-slate-400 text-xs font-bold my-auto px-4 tracking-wide leading-relaxed">
+                <p>下の [START LIVE] ボタンを押して接続を開始してください。<br>音声・テキストでの対話が可能です。</p>
+            </div>
+        </div>
+
+        <!-- コントロールバー -->
+        <div class="absolute bottom-0 left-0 w-full glass-panel p-3 pb-safe pt-3 px-4 shadow-[0_-10px_30px_rgba(0,0,0,0.5)] border-t border-white/5">
+            <div class="max-w-3xl mx-auto w-full flex flex-col gap-3">
+                
+                <!-- メインボタン -->
+                <button id="start-btn" class="w-full bg-gradient-to-r from-cyber-cyan to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-slate-900 font-extrabold h-12 rounded-xl shadow-[0_0_20px_rgba(0,240,255,0.3)] transition-all active:scale-[0.98] text-sm tracking-widest flex items-center justify-center gap-2 uppercase">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
+                    START LIVE
+                </button>
+                <button id="stop-btn" class="hidden w-full bg-slate-800 text-rose-500 border border-rose-500/50 hover:bg-slate-700 font-extrabold h-12 rounded-xl transition-all active:scale-[0.98] text-sm tracking-widest flex items-center justify-center gap-2 uppercase">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"></path></svg>
+                    END SESSION
+                </button>
+
+                <!-- テキスト入力 -->
+                <div class="flex gap-2 relative">
+                    <input type="text" id="user-input" placeholder="Type your message..." class="flex-grow bg-slate-800/50 border border-slate-600 rounded-xl px-4 h-11 focus:outline-none focus:border-cyber-cyan focus:bg-slate-800 text-slate-200 transition-all text-sm">
+                    <button id="send-btn" class="bg-slate-700 hover:bg-slate-600 text-cyber-cyan border border-slate-600 font-bold w-11 h-11 rounded-xl transition-all active:scale-95 flex items-center justify-center shrink-0">
+                        <svg class="w-5 h-5 translate-x-[-1px] translate-y-[1px]" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- トースト通知 -->
+    <div id="toast-container" class="fixed top-4 left-0 w-full flex justify-center z-50 pointer-events-none px-4 flex-col items-center gap-2"></div>
+
+    <!-- 設定モーダル -->
+    <div id="settings-modal" class="fixed inset-0 bg-cyber-bg/80 backdrop-blur-md z-50 hidden overflow-y-auto">
+        <div class="min-h-screen flex items-center justify-center p-4">
+            <div class="bg-cyber-panel border border-slate-700 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
+                <div class="p-5 border-b border-slate-700 flex justify-between items-center bg-slate-800/50">
+                    <h2 class="text-lg font-extrabold text-white flex items-center gap-2 tracking-widest">
+                        <svg class="w-5 h-5 text-cyber-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg>
+                        SETTINGS
+                    </h2>
+                    <button id="close-settings-btn" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-700 transition">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                
+                <div class="p-5 flex flex-col gap-6 overflow-y-auto max-h-[60vh] text-slate-300">
+                    <!-- API Key -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider">Gemini API Key</label>
+                        <p class="text-[10px] text-cyber-cyan mb-2">※未入力の場合は環境標準キーを使用</p>
+                        <input type="password" id="api-key-input" placeholder="AIzaSy..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 focus:outline-none focus:border-cyber-cyan font-mono text-sm text-white">
+                    </div>
+
+                    <!-- Voice -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">AI Voice Model</label>
+                        <select id="voice-select" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 focus:outline-none focus:border-cyber-cyan text-sm font-bold text-white appearance-none">
+                            <option value="Fenrir">Fenrir (Male / Cool)</option>
+                            <option value="Charon">Charon (Male / Deep)</option>
+                            <option value="Aoede">Aoede (Female / Soft)</option>
+                            <option value="Kore">Kore (Female / Clear)</option>
+                            <option value="Puck">Puck (Male / Bright)</option>
+                        </select>
+                    </div>
+
+                    <!-- Prompt -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider">System Instruction</label>
+                        <p class="text-[10px] text-slate-500 mb-2">AIの役割や性格を定義します。</p>
+                        <textarea id="system-instruction-input" rows="4" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 focus:outline-none focus:border-cyber-cyan text-xs text-white resize-none" placeholder="プロンプトを入力..."></textarea>
+                    </div>
+
+                    <!-- Avatar Upload -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider">Custom Avatar</label>
+                        <p class="text-[10px] text-slate-500 mb-3">※正方形推奨。画像はブラウザ(localStorage)に保存されます。</p>
+                        
+                        <div class="flex flex-col gap-4">
+                            <!-- Idle -->
+                            <div class="flex items-center gap-3 bg-slate-800/50 p-3 rounded-xl border border-slate-700">
+                                <div class="w-12 h-12 rounded-lg bg-slate-900 border border-slate-600 overflow-hidden shrink-0">
+                                    <img id="preview-idle" src="https://placehold.co/400x400/151C2C/00F0FF?text=Idle" class="w-full h-full object-cover">
+                                </div>
+                                <div class="flex-grow">
+                                    <label class="text-[10px] font-bold text-cyber-cyan block mb-1 uppercase tracking-wider">Idle State (口閉じ)</label>
+                                    <input type="file" id="upload-idle" accept="image/*" class="text-xs w-full file:mr-2 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-[10px] file:font-bold file:bg-slate-700 file:text-white hover:file:bg-slate-600 text-slate-400 cursor-pointer">
+                                </div>
+                            </div>
+                            <!-- Talking -->
+                            <div class="flex items-center gap-3 bg-slate-800/50 p-3 rounded-xl border border-slate-700">
+                                <div class="w-12 h-12 rounded-lg bg-slate-900 border border-slate-600 overflow-hidden shrink-0">
+                                    <img id="preview-talking" src="https://placehold.co/400x400/151C2C/00F0FF?text=Talking" class="w-full h-full object-cover">
+                                </div>
+                                <div class="flex-grow">
+                                    <label class="text-[10px] font-bold text-cyber-cyan block mb-1 uppercase tracking-wider">Talking State (口開け)</label>
+                                    <input type="file" id="upload-talking" accept="image/*" class="text-xs w-full file:mr-2 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-[10px] file:font-bold file:bg-slate-700 file:text-white hover:file:bg-slate-600 text-slate-400 cursor-pointer">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-4 border-t border-slate-700 bg-slate-800/50">
+                    <button id="save-settings-btn" class="w-full bg-cyber-cyan hover:bg-cyan-400 text-slate-900 font-extrabold py-3 px-4 rounded-xl shadow-[0_0_15px_rgba(0,240,255,0.2)] transition-all active:scale-[0.98] text-sm tracking-widest uppercase">
+                        SAVE & CLOSE
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script type="module">
+        import { GoogleGenAI, Modality } from '@google/genai';
+
+        // --- UI要素取得 ---
+        const avatarContainer = document.getElementById('avatar-container');
+        const imgIdle = document.getElementById('img-idle');
+        const imgTalking = document.getElementById('img-talking');
+        const startBtn = document.getElementById('start-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const chatLog = document.getElementById('chat-log');
+        const welcomeMsg = document.getElementById('welcome-msg');
+        
+        const statusIndicator = document.getElementById('status-indicator');
+        const statusPing = document.getElementById('status-ping');
+        const statusDot = document.getElementById('status-dot');
+        const modeBadge = document.getElementById('mode-badge');
+        const visualizerBars = document.querySelectorAll('.bar');
+
+        // 設定用要素
+        const settingsModal = document.getElementById('settings-modal');
+        const openSettingsBtn = document.getElementById('open-settings-btn');
+        const closeSettingsBtn = document.getElementById('close-settings-btn');
+        const saveSettingsBtn = document.getElementById('save-settings-btn');
+        const apiKeyInput = document.getElementById('api-key-input');
+        const voiceSelect = document.getElementById('voice-select');
+        const systemInstructionInput = document.getElementById('system-instruction-input');
+        const uploadIdle = document.getElementById('upload-idle');
+        const uploadTalking = document.getElementById('upload-talking');
+        const previewIdle = document.getElementById('preview-idle');
+        const previewTalking = document.getElementById('preview-talking');
+
+        // --- 状態変数 ---
+        let ai = null;
+        let sessionPromise = null;
+        let isSessionActive = false;
+        let isHttpFallback = false;
+
+        // Base64画像保持用
+        let currentIdleBase64 = '';
+        let currentTalkingBase64 = '';
+
+        // --- デフォルトプロンプト（中学生向けスマート設定） ---
+        const DEFAULT_PROMPT = `あなたは中学生向けに開発された、クールで知的なAIアシスタントです。
+口調は論理的かつフレンドリーで、少し大人びたスマートな言葉遣いを意識してください。
+過度に子供扱いせず、対等なパートナーとして対話します。
+回答は簡潔に、テンポ良く返してください。`;
+
+        // --- localStorage から設定を読み込む ---
+        const savedSettings = JSON.parse(localStorage.getItem('cyberAvatarLiveSettings')) || {};
+        
+        let customApiKey = savedSettings.apiKey || '';
+        let selectedVoice = savedSettings.voice || 'Fenrir';
+        let systemInstruction = savedSettings.systemInstruction || DEFAULT_PROMPT;
+        currentIdleBase64 = savedSettings.idleImage || '';
+        currentTalkingBase64 = savedSettings.talkingImage || '';
+
+        // UIに初期値をセット
+        apiKeyInput.value = customApiKey;
+        voiceSelect.value = selectedVoice;
+        systemInstructionInput.value = systemInstruction;
+
+        if (currentIdleBase64) {
+            imgIdle.src = currentIdleBase64;
+            previewIdle.src = currentIdleBase64;
+        }
+        if (currentTalkingBase64) {
+            imgTalking.src = currentTalkingBase64;
+            previewTalking.src = currentTalkingBase64;
+        }
+
+        // オーディオ関連
+        let inputAudioContext = null;
+        let outputAudioContext = null;
+        let analyser = null; 
+        let mediaStream = null;
+        let nextStartTime = 0;
+        let isAnimating = false;
+        let synthSpeakingInterval = null;
+        const activeAudioSources = new Set();
+
+        // --- トースト通知 ---
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            const baseClass = "px-5 py-3 rounded-xl shadow-2xl text-xs sm:text-sm toast-enter flex items-center gap-3 font-bold border pointer-events-auto backdrop-blur-md";
+            if (type === 'error') {
+                toast.className = `${baseClass} bg-rose-950/80 text-rose-200 border-rose-500/50`;
+                toast.innerHTML = `<svg class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> <span>${message}</span>`;
+            } else {
+                toast.className = `${baseClass} bg-slate-800/90 text-cyber-cyan border-cyber-cyan/30`;
+                toast.innerHTML = `<svg class="w-5 h-5 text-cyber-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> <span>${message}</span>`;
+            }
+            
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = 'slideDown 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) reverse forwards';
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        // --- 設定モーダル制御 ---
+        openSettingsBtn.addEventListener('click', () => {
+            if (isSessionActive) {
+                showToast('SESSION IN PROGRESS. Please end session first.', 'error');
+                return;
+            }
+            settingsModal.classList.remove('hidden');
+        });
+        const closeSettings = () => settingsModal.classList.add('hidden');
+        closeSettingsBtn.addEventListener('click', closeSettings);
+        
+        // 画像アップロード (Base64変換)
+        function handleImageUpload(inputEl, previewEl, targetImgEl, stateKey) {
+            inputEl.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (evt) => {
+                        const base64Str = evt.target.result;
+                        previewEl.src = base64Str;
+                        targetImgEl.src = base64Str;
+                        if(stateKey === 'idle') currentIdleBase64 = base64Str;
+                        if(stateKey === 'talking') currentTalkingBase64 = base64Str;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+        handleImageUpload(uploadIdle, previewIdle, imgIdle, 'idle');
+        handleImageUpload(uploadTalking, previewTalking, imgTalking, 'talking');
+
+        // 設定保存
+        saveSettingsBtn.addEventListener('click', () => {
+            customApiKey = apiKeyInput.value.trim();
+            selectedVoice = voiceSelect.value;
+            systemInstruction = systemInstructionInput.value.trim() || DEFAULT_PROMPT;
+
+            const settingsToSave = {
+                apiKey: customApiKey,
+                voice: selectedVoice,
+                systemInstruction: systemInstruction,
+                idleImage: currentIdleBase64,
+                talkingImage: currentTalkingBase64
+            };
+            
+            try {
+                localStorage.setItem('cyberAvatarLiveSettings', JSON.stringify(settingsToSave));
+                showToast('SETTINGS SAVED SUCESSFULLY');
+                closeSettings();
+            } catch (e) {
+                // 画像サイズが大きすぎてQuotaExceededErrorになる場合のフォールバック
+                console.error(e);
+                showToast('保存容量を超過しました。画像サイズを小さくしてください。', 'error');
+            }
+        });
+
+        // --- Web Audio Worklet ---
+        const workletCode = `
+        class RecorderProcessor extends AudioWorkletProcessor {
+            process(inputs) {
+                const input = inputs[0];
+                if (input && input.length > 0) {
+                    this.port.postMessage(input[0]);
+                }
+                return true;
+            }
+        }
+        registerProcessor('recorder-processor', RecorderProcessor);
+        `;
+
+        function createBlob(data) {
+            const int16 = new Int16Array(data.length);
+            for (let i = 0; i < data.length; i++) {
+                int16[i] = data[i] * 32768; 
+            }
+            let binary = '';
+            const bytes = new Uint8Array(int16.buffer);
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return {
+                data: btoa(binary),
+                mimeType: 'audio/pcm;rate=16000',
+            };
+        }
+
+        async function decodeBase64ToAudioBuffer(base64Pcm, ctx, sampleRate = 24000) {
+            const binary = atob(base64Pcm);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+            const dataInt16 = new Int16Array(bytes.buffer);
+            const buffer = ctx.createBuffer(1, dataInt16.length, sampleRate);
+            const channelData = buffer.getChannelData(0);
+            for (let i = 0; i < dataInt16.length; i++) {
+                channelData[i] = dataInt16[i] / 32768.0;
+            }
+            return buffer;
+        }
+
+        // --- リップシンク & ビジュアライザー ---
+        function updateLipSync() {
+            if (!analyser || !isSessionActive) {
+                if (!synthSpeakingInterval) {
+                    isAnimating = false;
+                    imgIdle.classList.remove('hidden-state');
+                    imgTalking.classList.add('hidden-state');
+                    visualizerBars.forEach(bar => bar.style.height = '4px');
+                }
+                return;
+            }
+            isAnimating = true;
+
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+            analyser.getByteFrequencyData(dataArray);
+
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) {
+                sum += dataArray[i];
+            }
+            const averageVolume = sum / dataArray.length;
+
+            // 感度調整（中学生向けに少しシャープな反応）
+            if (averageVolume > 10) {
+                imgIdle.classList.add('hidden-state');
+                imgTalking.classList.remove('hidden-state');
+            } else {
+                imgIdle.classList.remove('hidden-state');
+                imgTalking.classList.add('hidden-state');
+            }
+
+            visualizerBars.forEach((bar, index) => {
+                const val = dataArray[index * 4] || 0;
+                const height = Math.max(4, (val / 255) * 20);
+                bar.style.height = `${height}px`;
+            });
+
+            requestAnimationFrame(updateLipSync);
+        }
+
+        // TTS用 擬似リップシンク
+        function startSynthLipSync() {
+            if (synthSpeakingInterval) clearInterval(synthSpeakingInterval);
+            let state = false;
+            synthSpeakingInterval = setInterval(() => {
+                state = !state;
+                if (state) {
+                    imgIdle.classList.add('hidden-state');
+                    imgTalking.classList.remove('hidden-state');
+                } else {
+                    imgIdle.classList.remove('hidden-state');
+                    imgTalking.classList.add('hidden-state');
+                }
+                visualizerBars.forEach(bar => {
+                    bar.style.height = `${Math.floor(Math.random() * 15) + 4}px`;
+                });
+            }, 100);
+        }
+
+        function stopSynthLipSync() {
+            if (synthSpeakingInterval) {
+                clearInterval(synthSpeakingInterval);
+                synthSpeakingInterval = null;
+            }
+            imgIdle.classList.remove('hidden-state');
+            imgTalking.classList.add('hidden-state');
+            visualizerBars.forEach(bar => bar.style.height = '4px');
+        }
+
+        // --- UI状態更新 ---
+        function updateStatus(message, state = 'info') {
+            statusIndicator.textContent = message;
+            statusPing.classList.remove('hidden');
+            
+            if (state === 'error') {
+                statusIndicator.className = 'text-xs font-bold text-rose-500 tracking-widest uppercase';
+                statusPing.className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75';
+                statusDot.className = 'relative inline-flex rounded-full h-2 w-2 bg-rose-500';
+            } else if (state === 'active') {
+                statusIndicator.className = 'text-xs font-bold text-cyber-cyan tracking-widest uppercase';
+                statusPing.className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-cyber-cyan opacity-75';
+                statusDot.className = 'relative inline-flex rounded-full h-2 w-2 bg-cyber-cyan';
+            } else {
+                statusIndicator.className = 'text-xs font-bold text-slate-400 tracking-widest uppercase';
+                statusPing.classList.add('hidden');
+                statusDot.className = 'relative inline-flex rounded-full h-2 w-2 bg-slate-500';
+            }
+        }
+
+        function addMessageToLog(sender, text) {
+            if (welcomeMsg) welcomeMsg.style.display = 'none';
+
+            const msgWrapper = document.createElement('div');
+            msgWrapper.className = `flex w-full ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+
+            const msgDiv = document.createElement('div');
+            msgDiv.classList.add('msg-bubble', 'p-3', 'px-4', 'max-w-[85%]', 'text-sm', 'leading-relaxed', 'border');
+            
+            if (sender === 'user') {
+                msgDiv.classList.add('bg-slate-800/80', 'text-white', 'border-slate-600', 'rounded-2xl', 'rounded-br-sm');
+                msgDiv.textContent = text;
+            } else {
+                msgDiv.classList.add('bg-cyber-panel/80', 'text-cyber-cyan', 'border-cyber-cyan/30', 'rounded-2xl', 'rounded-tl-sm');
+                msgDiv.innerHTML = text.replace(/\n/g, '<br>'); // 改行反映
+            }
+            
+            msgWrapper.appendChild(msgDiv);
+            chatLog.appendChild(msgWrapper);
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
+
+        let currentInputText = '';
+        let currentOutputText = '';
+
+        // --- セッション開始 ---
+        async function startSession() {
+            try {
+                updateStatus('INITIALIZING...', 'info');
+                startBtn.disabled = true;
+
+                ai = new GoogleGenAI({ apiKey: customApiKey });
+
+                if (isHttpFallback) {
+                    startHttpSession();
+                    return;
+                }
+
+                // マイク取得
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    audio: { channelCount: 1, sampleRate: 16000, echoCancellation: true, noiseSuppression: true }
+                }).catch(() => null);
+
+                inputAudioContext = new (window.AudioContext || window.webkitAudioContext)({sampleRate: 16000});
+                outputAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+                
+                await inputAudioContext.resume();
+                await outputAudioContext.resume();
+
+                analyser = outputAudioContext.createAnalyser();
+                analyser.fftSize = 256;
+                analyser.connect(outputAudioContext.destination);
+
+                const workletBlob = new Blob([workletCode], { type: "application/javascript" });
+                await inputAudioContext.audioWorklet.addModule(URL.createObjectURL(workletBlob));
+                
+                updateStatus('CONNECTING...', 'info');
+
+                // Canvas環境に合わせてモデル指定は gemini-2.0-flash-exp (Live API対応推奨モデル)
+                const connectPromise = ai.live.connect({
+                    model: 'gemini-2.0-flash-exp', 
+                    callbacks: {
+                        onopen: handleConnectionOpen,
+                        onmessage: handleServerMessage,
+                        onerror: (err) => { 
+                            console.warn("Live API Error:", err); 
+                            switchToHttpMode("WebSocket Connection Blocked. Switching to Standard Mode.");
+                        },
+                        onclose: () => { 
+                            updateStatus('SESSION ENDED', 'info'); 
+                            cleanupSession(); 
+                        }
+                    },
+                    config: {
+                        responseModalities: [Modality.AUDIO],
+                        speechConfig: {
+                            voiceConfig: { prebuiltVoiceConfig: { voiceName: selectedVoice } }
+                        },
+                        inputAudioTranscription: {}, 
+                        outputAudioTranscription: {},
+                        systemInstruction: systemInstruction,
+                    }
+                });
+
+                sessionPromise = connectPromise.catch((err) => {
+                    console.warn("Live API Exception:", err);
+                    switchToHttpMode("Running in restricted environment. Switched to Standard Mode.");
+                    return null;
+                });
+
+                const session = await sessionPromise;
+                if (!session) return; 
+
+                isSessionActive = true;
+                avatarContainer.classList.add('is-active');
+                
+            } catch (error) {
+                console.warn("Setup Failed, switching to HTTP Fallback:", error);
+                switchToHttpMode("Starting Standard Mode.");
+            }
+        }
+
+        function switchToHttpMode(reasonMessage) {
+            isHttpFallback = true;
+            modeBadge.textContent = "STANDARD (HTTP)";
+            modeBadge.className = "text-[10px] font-bold text-amber-500 tracking-widest uppercase";
+            showToast(reasonMessage);
+            cleanupSession();
+            startHttpSession();
+        }
+
+        function startHttpSession() {
+            isSessionActive = true;
+            avatarContainer.classList.add('is-active');
+            updateStatus('SYSTEM READY', 'active');
+            
+            startBtn.classList.add('hidden');
+            stopBtn.classList.remove('hidden');
+            userInput.disabled = false;
+            sendBtn.disabled = false;
+            
+            showToast('Text or Audio output is ready.');
+        }
+
+        function handleConnectionOpen() {
+            modeBadge.textContent = "LIVE (WS)";
+            modeBadge.className = "text-[10px] font-bold text-cyber-cyan tracking-widest uppercase";
+            updateStatus('SYSTEM READY', 'active');
+            
+            startBtn.classList.add('hidden');
+            stopBtn.classList.remove('hidden');
+            
+            userInput.disabled = false;
+            sendBtn.disabled = false;
+            
+            if (mediaStream && inputAudioContext) {
+                const source = inputAudioContext.createMediaStreamSource(mediaStream);
+                const recorder = new AudioWorkletNode(inputAudioContext, 'recorder-processor');
+
+                recorder.port.onmessage = (event) => {
+                    if (sessionPromise && isSessionActive) {
+                        sessionPromise.then(session => {
+                            if (session) session.sendRealtimeInput({ audio: createBlob(event.data) });
+                        }).catch(() => {});
+                    }
+                };
+                source.connect(recorder);
+            }
+
+            if (!isAnimating) updateLipSync();
+        }
+
+        async function handleServerMessage(message) {
+            if (message.serverContent?.outputTranscription) {
+                currentOutputText += message.serverContent.outputTranscription.text;
+            } else if (message.serverContent?.inputTranscription) {
+                currentInputText += message.serverContent.inputTranscription.text;
+            }
+
+            if (message.serverContent?.turnComplete) {
+                const userTxt = currentInputText.trim();
+                const aiTxt = currentOutputText.trim();
+                if (userTxt) addMessageToLog('user', userTxt);
+                if (aiTxt) addMessageToLog('ai', aiTxt);
+                currentInputText = ''; 
+                currentOutputText = '';
+            }
+
+            const audioB64 = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
+            if (audioB64 && outputAudioContext) {
+                nextStartTime = Math.max(nextStartTime, outputAudioContext.currentTime);
+                const audioBuffer = await decodeBase64ToAudioBuffer(audioB64, outputAudioContext, 24000);
+                
+                const source = outputAudioContext.createBufferSource();
+                source.buffer = audioBuffer;
+                
+                source.connect(analyser); 
+                source.addEventListener('ended', () => activeAudioSources.delete(source));
+                
+                source.start(nextStartTime);
+                nextStartTime += audioBuffer.duration;
+                activeAudioSources.add(source);
+            }
+
+            if (message.serverContent?.interrupted) {
+                for (const src of activeAudioSources.values()) {
+                    try { src.stop(); } catch(e){}
+                }
+                activeAudioSources.clear();
+                nextStartTime = 0;
+            }
+        }
+
+        // HTTPフォールバック時の送信処理
+        async function handleHttpSend(text) {
+            addMessageToLog('user', text);
+            updateStatus('PROCESSING...', 'active');
+            
+            try {
+                if (!ai) ai = new GoogleGenAI({ apiKey: customApiKey });
+                
+                const response = await ai.models.generateContent({
+                    model: 'gemini-2.5-flash',
+                    contents: text,
+                    config: {
+                        systemInstruction: systemInstruction
+                    }
+                });
+
+                const replyText = response.text || "通信エラーが発生しました。";
+                addMessageToLog('ai', replyText);
+                updateStatus('SYSTEM READY', 'active');
+
+                speakText(replyText);
+
+            } catch (err) {
+                console.error("HTTP GenAI Error:", err);
+                showToast("System Error Occurred.", "error");
+                updateStatus('SYSTEM ERROR', 'error');
+            }
+        }
+
+        function speakText(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'ja-JP';
+                utterance.rate = 1.05;
+                utterance.pitch = 1.0; 
+
+                utterance.onstart = () => startSynthLipSync();
+                utterance.onend = () => stopSynthLipSync();
+                utterance.onerror = () => stopSynthLipSync();
+
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function cleanupSession() {
+            isSessionActive = false;
+            avatarContainer.classList.remove('is-active');
+            stopSynthLipSync();
+            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+
+            if (sessionPromise) {
+                sessionPromise.then(session => {
+                    if (session && typeof session.close === 'function') session.close();
+                }).catch(() => {});
+                sessionPromise = null;
+            }
+            
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+            
+            for (const src of activeAudioSources.values()) {
+                try { src.stop(); } catch(e){}
+            }
+            activeAudioSources.clear();
+            
+            if (inputAudioContext) inputAudioContext.close().catch(() => {});
+            if (outputAudioContext) outputAudioContext.close().catch(() => {});
+            inputAudioContext = null;
+            outputAudioContext = null;
+            analyser = null;
+            nextStartTime = 0;
+            
+            startBtn.disabled = false;
+            startBtn.classList.remove('hidden');
+            stopBtn.classList.add('hidden');
+            
+            userInput.placeholder = "Type your message...";
+            imgIdle.classList.remove('hidden-state');
+            imgTalking.classList.add('hidden-state');
+            visualizerBars.forEach(bar => bar.style.height = '4px');
+            
+            updateStatus('SYSTEM STANDBY', 'info');
+            if(!isHttpFallback) {
+                modeBadge.textContent = "OFFLINE";
+                modeBadge.className = "text-[10px] font-bold text-slate-400 tracking-widest uppercase";
+            }
+        }
+
+        // --- イベントリスナー ---
+        startBtn.addEventListener('click', () => { 
+            if (!isSessionActive) startSession(); 
+        });
+        
+        stopBtn.addEventListener('click', () => { 
+            cleanupSession(); 
+        });
+
+        function handleTextSend() {
+            const text = userInput.value.trim();
+            if (!text) return;
+            
+            userInput.value = '';
+            
+            if (isHttpFallback || !isSessionActive) {
+                if (!isSessionActive) startHttpSession();
+                handleHttpSend(text);
+            } else if (sessionPromise) {
+                sessionPromise.then(session => {
+                    if (session) session.sendRealtimeInput({ text: text });
+                });
+            }
+        }
+
+        sendBtn.addEventListener('click', handleTextSend);
+        userInput.addEventListener('keypress', (e) => { 
+            if (e.key === 'Enter') handleTextSend(); 
+        });
+
+    </script>
+</body>
+</html>
