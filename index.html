@@ -495,11 +495,20 @@
             }
             const averageVolume = sum / dataArray.length;
 
-            // 音声の強弱（音量レベル）に合わせて口を開閉
-            // 音が一定以上の強さの時に口を開き、音が弱い時や言葉の合間は閉じる
-            if (averageVolume > 8 || maxVal > 25) {
-                imgTalking.classList.remove('hidden-state');
+            // 音声の発話（音量レベル）を検知
+            const isSpeaking = averageVolume > 10 || maxVal > 30;
+
+            if (isSpeaking) {
+                // 音声を検知している間のみ、音量の強さに応じたリズムで口を開閉（開きっぱなしを防止）
+                const toggleCycle = averageVolume > 25 ? 150 : 200;
+                const isOpen = (Math.floor(Date.now() / toggleCycle) % 2 === 0);
+                if (isOpen) {
+                    imgTalking.classList.remove('hidden-state');
+                } else {
+                    imgTalking.classList.add('hidden-state');
+                }
             } else {
+                // 無音・息継ぎ・言葉の間は口を閉じる
                 imgTalking.classList.add('hidden-state');
             }
 
