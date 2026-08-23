@@ -3,46 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI Avatar Live - Cyber Edition</title>
+    <title>AIトークルーム</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
-            darkMode: 'class',
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['"Plus Jakarta Sans"', '"Noto Sans JP"', 'sans-serif'],
+                        sans: ['"Noto Sans JP"', 'sans-serif'],
                     },
                     colors: {
-                        cyber: {
-                            bg: '#0B0F19',
-                            panel: '#151C2C',
-                            cyan: '#00F0FF',
-                            purple: '#7000FF',
-                            pink: '#FF007A'
+                        fresh: {
+                            bg: '#F4F7F9',
+                            panel: '#FFFFFF',
+                            mint: '#00BFA5',
+                            accent: '#29B6F6'
                         }
-                    },
-                    animation: {
-                        'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                     }
                 }
             }
         }
     </script>
 
-    <!-- Google Fonts: Plus Jakarta Sans & Noto Sans JP -->
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+    <!-- Google Fonts: Noto Sans JP -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700;800&display=swap" rel="stylesheet">
     
     <style>
         body {
             overscroll-behavior-y: none;
-            background-color: #0B0F19;
-            color: #E2E8F0;
+            background-color: #F0F4F8; 
+            color: #334155;
         }
 
-        /* アバターのコンテナ設定（サイバーネオン風） */
+        /* アバターのコンテナ設定 */
         .avatar-wrapper {
             position: relative;
             width: 100%;
@@ -50,9 +45,9 @@
             margin: 0 auto;
             border-radius: 50%;
             overflow: hidden;
-            background-color: #151C2C;
-            border: 2px solid rgba(0, 240, 255, 0.2);
-            box-shadow: 0 0 20px rgba(0, 240, 255, 0.05), inset 0 0 20px rgba(0, 240, 255, 0.05);
+            background-color: #FFFFFF;
+            border: 4px solid #E0F2FE;
+            box-shadow: 0 10px 30px rgba(14, 165, 233, 0.1);
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
@@ -64,8 +59,8 @@
 
         .is-active .avatar-wrapper {
             animation: hover-float 4s ease-in-out infinite;
-            border-color: rgba(0, 240, 255, 0.8);
-            box-shadow: 0 0 40px rgba(0, 240, 255, 0.3), inset 0 0 20px rgba(0, 240, 255, 0.2);
+            border-color: #38BDF8;
+            box-shadow: 0 15px 35px rgba(56, 189, 248, 0.25);
         }
 
         .avatar-img {
@@ -75,7 +70,7 @@
             top: 0;
             left: 0;
             object-fit: cover;
-            transition: opacity 0.1s ease; /* リップシンクの反応をシャープに */
+            transition: opacity 0.1s ease;
         }
 
         .hidden-state {
@@ -83,11 +78,11 @@
             pointer-events: none;
         }
 
-        /* スクロールバー（ダークモダン） */
-        #chat-log::-webkit-scrollbar { width: 4px; }
+        /* スクロールバー */
+        #chat-log::-webkit-scrollbar { width: 6px; }
         #chat-log::-webkit-scrollbar-track { background: transparent; }
         #chat-log::-webkit-scrollbar-thumb {
-            background: #334155;
+            background: #CBD5E1;
             border-radius: 10px;
         }
 
@@ -100,21 +95,20 @@
             animation: popIn 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
         }
 
-        /* オーディオビジュアライザー（サイバー風） */
+        /* オーディオビジュアライザー */
         .visualizer-container {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 3px;
+            gap: 4px;
             height: 24px;
         }
         .bar {
-            width: 4px;
-            background-color: #00F0FF;
-            border-radius: 2px;
-            height: 4px;
+            width: 5px;
+            background-color: #38BDF8;
+            border-radius: 3px;
+            height: 5px;
             transition: height 0.05s ease;
-            box-shadow: 0 0 8px rgba(0, 240, 255, 0.6);
         }
 
         /* トースト通知 */
@@ -126,12 +120,12 @@
             animation: slideDown 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
         }
 
-        /* ガラスモルフィズムユーティリティ */
+        /* 白系のガラスモルフィズム */
         .glass-panel {
-            background: rgba(21, 28, 44, 0.6);
+            background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 1);
         }
     </style>
     
@@ -143,48 +137,47 @@
       }
     </script>
 </head>
-<body class="h-screen h-[100dvh] flex flex-col overflow-hidden selection:bg-cyber-cyan selection:text-cyber-bg antialiased">
+<body class="h-screen h-[100dvh] flex flex-col overflow-hidden selection:bg-sky-200 selection:text-sky-900 antialiased font-sans bg-slate-50">
 
     <!-- 背景装飾 -->
     <div class="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-        <div class="absolute top-[-10%] left-[-10%] w-[40%] aspect-square rounded-full bg-cyber-purple/10 blur-[100px]"></div>
-        <div class="absolute bottom-[-10%] right-[-10%] w-[40%] aspect-square rounded-full bg-cyber-cyan/10 blur-[100px]"></div>
+        <div class="absolute top-[-20%] left-[-10%] w-[50%] aspect-square rounded-full bg-sky-200/40 blur-[80px]"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[40%] aspect-square rounded-full bg-teal-100/50 blur-[80px]"></div>
     </div>
 
     <!-- ヘッダー -->
-    <header class="flex-none flex justify-between items-center px-5 py-4 glass-panel z-20 shadow-lg">
+    <header class="flex-none flex justify-between items-center px-5 py-3 glass-panel z-20 shadow-sm border-b border-sky-100 relative">
         <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyber-cyan to-blue-600 flex items-center justify-center text-white shadow-[0_0_15px_rgba(0,240,255,0.4)]">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"></path></svg>
+            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center text-white shadow-md">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
             </div>
             <div>
-                <h1 class="font-extrabold text-lg tracking-wider text-white">AI LINK <span class="text-cyber-cyan">.LIVE</span></h1>
-                <div class="flex items-center gap-2 mt-0.5">
+                <h1 class="font-extrabold text-lg tracking-wide text-slate-800">AIトークルーム</h1>
+                <div class="flex items-center gap-1.5 mt-0.5">
                     <span class="relative flex h-2 w-2">
-                      <span id="status-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-500 opacity-75"></span>
-                      <span id="status-dot" class="relative inline-flex rounded-full h-2 w-2 bg-slate-500"></span>
+                      <span id="status-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-400 opacity-75 hidden"></span>
+                      <span id="status-dot" class="relative inline-flex rounded-full h-2 w-2 bg-slate-400"></span>
                     </span>
-                    <span id="mode-badge" class="text-[10px] font-bold text-slate-400 tracking-widest uppercase">OFFLINE</span>
+                    <span id="mode-badge" class="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">待機中</span>
                 </div>
             </div>
         </div>
-        <button id="open-settings-btn" class="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 transition-all border border-white/5">
+        <button id="open-settings-btn" class="p-2.5 rounded-full bg-slate-50 hover:bg-slate-100 text-slate-600 transition-all border border-slate-200 shadow-sm relative z-30 cursor-pointer">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
         </button>
     </header>
 
-    <!-- メインコンテンツ (アバターエリア) -->
-    <main class="flex-none h-[50vh] md:h-[60vh] relative z-10 flex flex-col items-center justify-center p-4">
-        <!-- アバターコンテナ (極力大きく) -->
-        <div id="avatar-container" class="w-full max-w-[45vh] md:max-w-[55vh] flex flex-col items-center justify-center gap-5">
+    <!-- メインコンテンツ -->
+    <main class="flex-none h-[45vh] md:h-[55vh] relative z-10 flex flex-col items-center justify-center p-4">
+        <div id="avatar-container" class="w-full max-w-[40vh] md:max-w-[50vh] flex flex-col items-center justify-center gap-4">
             <div class="avatar-wrapper relative w-full">
-                <img id="img-idle" src="https://placehold.co/800x800/151C2C/00F0FF?text=Idle" alt="Idle" class="avatar-img" onerror="this.onerror=null; this.src='https://placehold.co/800x800/151C2C/00F0FF?text=Idle';">
-                <img id="img-talking" src="https://placehold.co/800x800/151C2C/00F0FF?text=Talking" alt="Talking" class="avatar-img hidden-state" onerror="this.onerror=null; this.src='https://placehold.co/800x800/151C2C/00F0FF?text=Talking';">
+                <img id="img-idle" src="https://placehold.co/800x800/E0F2FE/0284C7?text=Idle" alt="通常時" class="avatar-img" onerror="this.onerror=null; this.src='https://placehold.co/800x800/E0F2FE/0284C7?text=Idle';">
+                <img id="img-talking" src="https://placehold.co/800x800/E0F2FE/0284C7?text=Talking" alt="会話時" class="avatar-img hidden-state" onerror="this.onerror=null; this.src='https://placehold.co/800x800/E0F2FE/0284C7?text=Talking';">
             </div>
 
             <!-- ステータス & ビジュアライザー -->
-            <div class="glass-panel px-5 py-2 rounded-full flex items-center gap-4">
-                <span id="status-indicator" class="text-xs font-bold text-slate-400 tracking-widest uppercase">SYSTEM STANDBY</span>
+            <div class="glass-panel px-5 py-2 rounded-full flex items-center gap-4 shadow-sm border-sky-100">
+                <span id="status-indicator" class="text-sm font-bold text-slate-500">準備OK！</span>
                 <div class="visualizer-container" id="visualizer">
                     <div class="bar"></div><div class="bar"></div><div class="bar"></div>
                     <div class="bar"></div><div class="bar"></div>
@@ -193,34 +186,34 @@
         </div>
     </main>
 
-    <!-- チャットログ & 入力エリア (下半分) -->
-    <div class="flex-1 glass-panel flex flex-col overflow-hidden relative z-20 border-t border-white/10 rounded-t-3xl md:rounded-t-[2.5rem]">
+    <!-- チャットログ & 入力エリア -->
+    <div class="flex-1 glass-panel flex flex-col overflow-hidden relative z-20 border-t border-white shadow-[0_-5px_20px_rgba(0,0,0,0.03)] rounded-t-3xl md:rounded-t-[2.5rem]">
         
         <!-- チャット履歴 -->
-        <div id="chat-log" class="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col gap-4 pb-28">
-            <div id="welcome-msg" class="text-center text-slate-400 text-xs font-bold my-auto px-4 tracking-wide leading-relaxed">
-                <p>下の [START LIVE] ボタンを押して接続を開始してください。<br>音声・テキストでの対話が可能です。</p>
+        <div id="chat-log" class="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col gap-4 pb-36">
+            <div id="welcome-msg" class="text-center text-slate-400 text-sm font-bold my-auto px-4 leading-relaxed bg-slate-50/50 p-4 rounded-2xl border border-slate-100 mx-auto max-w-sm">
+                <p>下の「通話をスタート」ボタンを押してね。<br>マイクと文字、どちらでもお話しできるよ！</p>
             </div>
         </div>
 
-        <!-- コントロールバー -->
-        <div class="absolute bottom-0 left-0 w-full glass-panel p-3 pb-safe pt-3 px-4 shadow-[0_-10px_30px_rgba(0,0,0,0.5)] border-t border-white/5">
+        <!-- コントロールバー（z-40 を指定し最前面に） -->
+        <div class="absolute bottom-0 left-0 w-full glass-panel p-3 pb-safe pt-3 px-4 shadow-[0_-10px_30px_rgba(0,0,0,0.08)] border-t border-sky-50 z-40">
             <div class="max-w-3xl mx-auto w-full flex flex-col gap-3">
                 
-                <!-- メインボタン -->
-                <button id="start-btn" class="w-full bg-gradient-to-r from-cyber-cyan to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-slate-900 font-extrabold h-12 rounded-xl shadow-[0_0_20px_rgba(0,240,255,0.3)] transition-all active:scale-[0.98] text-sm tracking-widest flex items-center justify-center gap-2 uppercase">
+                <!-- メイン通話ボタン -->
+                <button id="start-btn" class="w-full bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white font-bold h-12 rounded-xl shadow-md shadow-sky-200 transition-all active:scale-[0.98] text-[15px] tracking-wide flex items-center justify-center gap-2 cursor-pointer">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
-                    START LIVE
+                    通話をスタート
                 </button>
-                <button id="stop-btn" class="hidden w-full bg-slate-800 text-rose-500 border border-rose-500/50 hover:bg-slate-700 font-extrabold h-12 rounded-xl transition-all active:scale-[0.98] text-sm tracking-widest flex items-center justify-center gap-2 uppercase">
+                <button id="stop-btn" class="hidden w-full bg-rose-50 text-rose-500 border border-rose-200 hover:bg-rose-100 font-bold h-12 rounded-xl transition-all active:scale-[0.98] text-[15px] tracking-wide flex items-center justify-center gap-2 cursor-pointer">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"></path></svg>
-                    END SESSION
+                    通話をおわる
                 </button>
 
                 <!-- テキスト入力 -->
                 <div class="flex gap-2 relative">
-                    <input type="text" id="user-input" placeholder="Type your message..." class="flex-grow bg-slate-800/50 border border-slate-600 rounded-xl px-4 h-11 focus:outline-none focus:border-cyber-cyan focus:bg-slate-800 text-slate-200 transition-all text-sm">
-                    <button id="send-btn" class="bg-slate-700 hover:bg-slate-600 text-cyber-cyan border border-slate-600 font-bold w-11 h-11 rounded-xl transition-all active:scale-95 flex items-center justify-center shrink-0">
+                    <input type="text" id="user-input" placeholder="メッセージを入力..." class="flex-grow bg-white border border-slate-200 rounded-xl px-4 h-11 focus:outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100 text-slate-700 transition-all text-sm font-medium shadow-sm">
+                    <button id="send-btn" class="bg-sky-500 hover:bg-sky-600 text-white font-bold w-11 h-11 rounded-xl shadow-sm transition-all active:scale-95 flex items-center justify-center shrink-0 cursor-pointer">
                         <svg class="w-5 h-5 translate-x-[-1px] translate-y-[1px]" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"></path></svg>
                     </button>
                 </div>
@@ -228,83 +221,75 @@
         </div>
     </div>
 
-    <!-- トースト通知 -->
+    <!-- トースト通知 (z-50) -->
     <div id="toast-container" class="fixed top-4 left-0 w-full flex justify-center z-50 pointer-events-none px-4 flex-col items-center gap-2"></div>
 
-    <!-- 設定モーダル -->
-    <div id="settings-modal" class="fixed inset-0 bg-cyber-bg/80 backdrop-blur-md z-50 hidden overflow-y-auto">
+    <!-- 設定モーダル (z-50) -->
+    <div id="settings-modal" class="fixed inset-0 bg-slate-900/30 backdrop-blur-sm z-50 hidden overflow-y-auto">
         <div class="min-h-screen flex items-center justify-center p-4">
-            <div class="bg-cyber-panel border border-slate-700 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
-                <div class="p-5 border-b border-slate-700 flex justify-between items-center bg-slate-800/50">
-                    <h2 class="text-lg font-extrabold text-white flex items-center gap-2 tracking-widest">
-                        <svg class="w-5 h-5 text-cyber-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg>
-                        SETTINGS
+            <div class="bg-white border border-slate-100 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
+                <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-sky-50/50">
+                    <h2 class="text-lg font-extrabold text-slate-800 flex items-center gap-2">
+                        <svg class="w-6 h-6 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg>
+                        いろいろな設定
                     </h2>
-                    <button id="close-settings-btn" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-700 transition">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    <button id="close-settings-btn" class="text-slate-400 hover:text-slate-700 p-1 rounded-full hover:bg-slate-100 transition bg-white shadow-sm border border-slate-100 cursor-pointer">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
                     </button>
                 </div>
                 
-                <div class="p-5 flex flex-col gap-6 overflow-y-auto max-h-[60vh] text-slate-300">
-                    <!-- API Key -->
+                <div class="p-5 flex flex-col gap-6 overflow-y-auto max-h-[60vh] text-slate-700 bg-white">
                     <div>
-                        <label class="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider">Gemini API Key</label>
-                        <p class="text-[10px] text-cyber-cyan mb-2">※未入力の場合は環境標準キーを使用</p>
-                        <input type="password" id="api-key-input" placeholder="AIzaSy..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 focus:outline-none focus:border-cyber-cyan font-mono text-sm text-white">
+                        <label class="block text-sm font-bold text-slate-700 mb-1">Gemini APIキー (必須)</label>
+                        <p class="text-[11px] text-sky-600 font-medium mb-2">※APIキーを入力しないとチャットを開始できません。</p>
+                        <input type="password" id="api-key-input" placeholder="AIzaSy..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-sky-400 focus:bg-white font-mono text-sm shadow-inner text-slate-700">
                     </div>
 
-                    <!-- Voice -->
                     <div>
-                        <label class="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">AI Voice Model</label>
-                        <select id="voice-select" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 focus:outline-none focus:border-cyber-cyan text-sm font-bold text-white appearance-none">
-                            <option value="Fenrir">Fenrir (Male / Cool)</option>
-                            <option value="Charon">Charon (Male / Deep)</option>
-                            <option value="Aoede">Aoede (Female / Soft)</option>
-                            <option value="Kore">Kore (Female / Clear)</option>
-                            <option value="Puck">Puck (Male / Bright)</option>
+                        <label class="block text-sm font-bold text-slate-700 mb-2">AIの声（ボイス）</label>
+                        <select id="voice-select" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-sky-400 focus:bg-white text-sm font-bold text-slate-700 appearance-none shadow-sm cursor-pointer">
+                            <option value="Aoede">女性（おだやか） - Aoede</option>
+                            <option value="Kore">女性（はきはき） - Kore</option>
+                            <option value="Puck">男性（明るい） - Puck</option>
+                            <option value="Zephyr">男性（さわやか） - Zephyr</option>
+                            <option value="Fenrir">男性（クール） - Fenrir</option>
                         </select>
                     </div>
 
-                    <!-- Prompt -->
                     <div>
-                        <label class="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider">System Instruction</label>
-                        <p class="text-[10px] text-slate-500 mb-2">AIの役割や性格を定義します。</p>
-                        <textarea id="system-instruction-input" rows="4" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 focus:outline-none focus:border-cyber-cyan text-xs text-white resize-none" placeholder="プロンプトを入力..."></textarea>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">AIの性格や役割（プロンプト）</label>
+                        <textarea id="system-instruction-input" rows="4" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-sky-400 focus:bg-white text-sm text-slate-700 resize-none shadow-inner leading-relaxed" placeholder="プロンプトを入力..."></textarea>
                     </div>
 
-                    <!-- Avatar Upload -->
                     <div>
-                        <label class="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider">Custom Avatar</label>
-                        <p class="text-[10px] text-slate-500 mb-3">※正方形推奨。画像はブラウザ(localStorage)に保存されます。</p>
-                        
-                        <div class="flex flex-col gap-4">
-                            <!-- Idle -->
-                            <div class="flex items-center gap-3 bg-slate-800/50 p-3 rounded-xl border border-slate-700">
-                                <div class="w-12 h-12 rounded-lg bg-slate-900 border border-slate-600 overflow-hidden shrink-0">
-                                    <img id="preview-idle" src="https://placehold.co/400x400/151C2C/00F0FF?text=Idle" class="w-full h-full object-cover">
+                        <label class="block text-sm font-bold text-slate-700 mb-1">自分のアバター画像を使う</label>
+                        <p class="text-[11px] text-slate-500 mb-3">※正方形がおすすめ。画像はブラウザに保存されるよ。</p>
+                        <div class="flex flex-col gap-3">
+                            <div class="flex items-center gap-3 bg-slate-50/50 p-3 rounded-xl border border-slate-100 shadow-sm">
+                                <div class="w-12 h-12 rounded-xl bg-white border border-slate-200 overflow-hidden shrink-0 shadow-sm">
+                                    <img id="preview-idle" src="https://placehold.co/400x400/E0F2FE/0284C7?text=Idle" class="w-full h-full object-cover">
                                 </div>
                                 <div class="flex-grow">
-                                    <label class="text-[10px] font-bold text-cyber-cyan block mb-1 uppercase tracking-wider">Idle State (口閉じ)</label>
-                                    <input type="file" id="upload-idle" accept="image/*" class="text-xs w-full file:mr-2 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-[10px] file:font-bold file:bg-slate-700 file:text-white hover:file:bg-slate-600 text-slate-400 cursor-pointer">
+                                    <label class="text-xs font-bold text-slate-700 block mb-1">通常時（おくちをとじた画像）</label>
+                                    <input type="file" id="upload-idle" accept="image/*" class="text-xs w-full file:mr-2 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-[11px] file:font-bold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100 text-slate-500 cursor-pointer">
                                 </div>
                             </div>
-                            <!-- Talking -->
-                            <div class="flex items-center gap-3 bg-slate-800/50 p-3 rounded-xl border border-slate-700">
-                                <div class="w-12 h-12 rounded-lg bg-slate-900 border border-slate-600 overflow-hidden shrink-0">
-                                    <img id="preview-talking" src="https://placehold.co/400x400/151C2C/00F0FF?text=Talking" class="w-full h-full object-cover">
+                            <div class="flex items-center gap-3 bg-slate-50/50 p-3 rounded-xl border border-slate-100 shadow-sm">
+                                <div class="w-12 h-12 rounded-xl bg-white border border-slate-200 overflow-hidden shrink-0 shadow-sm">
+                                    <img id="preview-talking" src="https://placehold.co/400x400/E0F2FE/0284C7?text=Talking" class="w-full h-full object-cover">
                                 </div>
                                 <div class="flex-grow">
-                                    <label class="text-[10px] font-bold text-cyber-cyan block mb-1 uppercase tracking-wider">Talking State (口開け)</label>
-                                    <input type="file" id="upload-talking" accept="image/*" class="text-xs w-full file:mr-2 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-[10px] file:font-bold file:bg-slate-700 file:text-white hover:file:bg-slate-600 text-slate-400 cursor-pointer">
+                                    <label class="text-xs font-bold text-slate-700 block mb-1">会話時（おくちをあけた画像）</label>
+                                    <input type="file" id="upload-talking" accept="image/*" class="text-xs w-full file:mr-2 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-[11px] file:font-bold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100 text-slate-500 cursor-pointer">
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="p-4 border-t border-slate-700 bg-slate-800/50">
-                    <button id="save-settings-btn" class="w-full bg-cyber-cyan hover:bg-cyan-400 text-slate-900 font-extrabold py-3 px-4 rounded-xl shadow-[0_0_15px_rgba(0,240,255,0.2)] transition-all active:scale-[0.98] text-sm tracking-widest uppercase">
-                        SAVE & CLOSE
+                <div class="p-4 border-t border-slate-100 bg-slate-50">
+                    <button id="save-settings-btn" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 px-4 rounded-xl shadow-md shadow-sky-200 transition-all active:scale-[0.98] text-[15px] cursor-pointer">
+                        保存してとじる
                     </button>
                 </div>
             </div>
@@ -332,7 +317,6 @@
         const modeBadge = document.getElementById('mode-badge');
         const visualizerBars = document.querySelectorAll('.bar');
 
-        // 設定用要素
         const settingsModal = document.getElementById('settings-modal');
         const openSettingsBtn = document.getElementById('open-settings-btn');
         const closeSettingsBtn = document.getElementById('close-settings-btn');
@@ -351,26 +335,22 @@
         let isSessionActive = false;
         let isHttpFallback = false;
 
-        // Base64画像保持用
         let currentIdleBase64 = '';
         let currentTalkingBase64 = '';
 
-        // --- デフォルトプロンプト（中学生向けスマート設定） ---
-        const DEFAULT_PROMPT = `あなたは中学生向けに開発された、クールで知的なAIアシスタントです。
-口調は論理的かつフレンドリーで、少し大人びたスマートな言葉遣いを意識してください。
-過度に子供扱いせず、対等なパートナーとして対話します。
-回答は簡潔に、テンポ良く返してください。`;
+        const DEFAULT_PROMPT = `あなたは中学生向けのフレンドリーなAIアシスタントです。
+敬語はあまり使わず、親しみやすい言葉遣い（〜だよ、〜だね）で話しかけてください。
+説明はわかりやすく、長すぎないように短くテンポよく返事をしてあげてください。
+相手の話をよく聞いて、共感したり褒めたりすることを心がけてください。`;
 
-        // --- localStorage から設定を読み込む ---
-        const savedSettings = JSON.parse(localStorage.getItem('cyberAvatarLiveSettings')) || {};
+        const savedSettings = JSON.parse(localStorage.getItem('cleanAvatarLiveSettings')) || {};
         
         let customApiKey = savedSettings.apiKey || '';
-        let selectedVoice = savedSettings.voice || 'Fenrir';
+        let selectedVoice = savedSettings.voice || 'Aoede';
         let systemInstruction = savedSettings.systemInstruction || DEFAULT_PROMPT;
         currentIdleBase64 = savedSettings.idleImage || '';
         currentTalkingBase64 = savedSettings.talkingImage || '';
 
-        // UIに初期値をセット
         apiKeyInput.value = customApiKey;
         voiceSelect.value = selectedVoice;
         systemInstructionInput.value = systemInstruction;
@@ -399,13 +379,13 @@
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
             
-            const baseClass = "px-5 py-3 rounded-xl shadow-2xl text-xs sm:text-sm toast-enter flex items-center gap-3 font-bold border pointer-events-auto backdrop-blur-md";
+            const baseClass = "px-5 py-3 rounded-2xl shadow-xl text-sm toast-enter flex items-center gap-3 font-bold border pointer-events-auto bg-white";
             if (type === 'error') {
-                toast.className = `${baseClass} bg-rose-950/80 text-rose-200 border-rose-500/50`;
+                toast.className = `${baseClass} text-rose-600 border-rose-200`;
                 toast.innerHTML = `<svg class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> <span>${message}</span>`;
             } else {
-                toast.className = `${baseClass} bg-slate-800/90 text-cyber-cyan border-cyber-cyan/30`;
-                toast.innerHTML = `<svg class="w-5 h-5 text-cyber-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> <span>${message}</span>`;
+                toast.className = `${baseClass} text-sky-700 border-sky-100`;
+                toast.innerHTML = `<svg class="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg> <span>${message}</span>`;
             }
             
             container.appendChild(toast);
@@ -419,7 +399,7 @@
         // --- 設定モーダル制御 ---
         openSettingsBtn.addEventListener('click', () => {
             if (isSessionActive) {
-                showToast('SESSION IN PROGRESS. Please end session first.', 'error');
+                showToast('通話中は設定をかえられないよ', 'error');
                 return;
             }
             settingsModal.classList.remove('hidden');
@@ -427,7 +407,6 @@
         const closeSettings = () => settingsModal.classList.add('hidden');
         closeSettingsBtn.addEventListener('click', closeSettings);
         
-        // 画像アップロード (Base64変換)
         function handleImageUpload(inputEl, previewEl, targetImgEl, stateKey) {
             inputEl.addEventListener('change', (e) => {
                 const file = e.target.files[0];
@@ -447,7 +426,6 @@
         handleImageUpload(uploadIdle, previewIdle, imgIdle, 'idle');
         handleImageUpload(uploadTalking, previewTalking, imgTalking, 'talking');
 
-        // 設定保存
         saveSettingsBtn.addEventListener('click', () => {
             customApiKey = apiKeyInput.value.trim();
             selectedVoice = voiceSelect.value;
@@ -462,13 +440,12 @@
             };
             
             try {
-                localStorage.setItem('cyberAvatarLiveSettings', JSON.stringify(settingsToSave));
-                showToast('SETTINGS SAVED SUCESSFULLY');
+                localStorage.setItem('cleanAvatarLiveSettings', JSON.stringify(settingsToSave));
+                showToast('設定をほぞんしたよ！');
                 closeSettings();
             } catch (e) {
-                // 画像サイズが大きすぎてQuotaExceededErrorになる場合のフォールバック
                 console.error(e);
-                showToast('保存容量を超過しました。画像サイズを小さくしてください。', 'error');
+                showToast('保存容量を超えちゃった。画像のサイズを小さくしてみてね。', 'error');
             }
         });
 
@@ -524,7 +501,7 @@
                     isAnimating = false;
                     imgIdle.classList.remove('hidden-state');
                     imgTalking.classList.add('hidden-state');
-                    visualizerBars.forEach(bar => bar.style.height = '4px');
+                    visualizerBars.forEach(bar => bar.style.height = '5px');
                 }
                 return;
             }
@@ -539,7 +516,6 @@
             }
             const averageVolume = sum / dataArray.length;
 
-            // 感度調整（中学生向けに少しシャープな反応）
             if (averageVolume > 10) {
                 imgIdle.classList.add('hidden-state');
                 imgTalking.classList.remove('hidden-state');
@@ -550,14 +526,13 @@
 
             visualizerBars.forEach((bar, index) => {
                 const val = dataArray[index * 4] || 0;
-                const height = Math.max(4, (val / 255) * 20);
+                const height = Math.max(5, (val / 255) * 20);
                 bar.style.height = `${height}px`;
             });
 
             requestAnimationFrame(updateLipSync);
         }
 
-        // TTS用 擬似リップシンク
         function startSynthLipSync() {
             if (synthSpeakingInterval) clearInterval(synthSpeakingInterval);
             let state = false;
@@ -571,7 +546,7 @@
                     imgTalking.classList.add('hidden-state');
                 }
                 visualizerBars.forEach(bar => {
-                    bar.style.height = `${Math.floor(Math.random() * 15) + 4}px`;
+                    bar.style.height = `${Math.floor(Math.random() * 15) + 5}px`;
                 });
             }, 100);
         }
@@ -583,26 +558,26 @@
             }
             imgIdle.classList.remove('hidden-state');
             imgTalking.classList.add('hidden-state');
-            visualizerBars.forEach(bar => bar.style.height = '4px');
+            visualizerBars.forEach(bar => bar.style.height = '5px');
         }
 
-        // --- UI状態更新 ---
         function updateStatus(message, state = 'info') {
             statusIndicator.textContent = message;
-            statusPing.classList.remove('hidden');
             
             if (state === 'error') {
-                statusIndicator.className = 'text-xs font-bold text-rose-500 tracking-widest uppercase';
-                statusPing.className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75';
+                statusIndicator.className = 'text-sm font-bold text-rose-500';
+                statusPing.className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75';
                 statusDot.className = 'relative inline-flex rounded-full h-2 w-2 bg-rose-500';
+                statusPing.classList.remove('hidden');
             } else if (state === 'active') {
-                statusIndicator.className = 'text-xs font-bold text-cyber-cyan tracking-widest uppercase';
-                statusPing.className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-cyber-cyan opacity-75';
-                statusDot.className = 'relative inline-flex rounded-full h-2 w-2 bg-cyber-cyan';
+                statusIndicator.className = 'text-sm font-bold text-sky-500';
+                statusPing.className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75';
+                statusDot.className = 'relative inline-flex rounded-full h-2 w-2 bg-sky-500';
+                statusPing.classList.remove('hidden');
             } else {
-                statusIndicator.className = 'text-xs font-bold text-slate-400 tracking-widest uppercase';
+                statusIndicator.className = 'text-sm font-bold text-slate-500';
+                statusDot.className = 'relative inline-flex rounded-full h-2 w-2 bg-slate-400';
                 statusPing.classList.add('hidden');
-                statusDot.className = 'relative inline-flex rounded-full h-2 w-2 bg-slate-500';
             }
         }
 
@@ -613,14 +588,14 @@
             msgWrapper.className = `flex w-full ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
 
             const msgDiv = document.createElement('div');
-            msgDiv.classList.add('msg-bubble', 'p-3', 'px-4', 'max-w-[85%]', 'text-sm', 'leading-relaxed', 'border');
+            msgDiv.classList.add('msg-bubble', 'p-3.5', 'px-5', 'max-w-[85%]', 'text-[15px]', 'leading-relaxed', 'shadow-sm', 'font-medium');
             
             if (sender === 'user') {
-                msgDiv.classList.add('bg-slate-800/80', 'text-white', 'border-slate-600', 'rounded-2xl', 'rounded-br-sm');
+                msgDiv.classList.add('bg-sky-500', 'text-white', 'rounded-2xl', 'rounded-br-sm');
                 msgDiv.textContent = text;
             } else {
-                msgDiv.classList.add('bg-cyber-panel/80', 'text-cyber-cyan', 'border-cyber-cyan/30', 'rounded-2xl', 'rounded-tl-sm');
-                msgDiv.innerHTML = text.replace(/\n/g, '<br>'); // 改行反映
+                msgDiv.classList.add('bg-white', 'text-slate-700', 'border', 'border-slate-100', 'rounded-2xl', 'rounded-tl-sm');
+                msgDiv.innerHTML = text.replace(/\n/g, '<br>');
             }
             
             msgWrapper.appendChild(msgDiv);
@@ -634,8 +609,21 @@
         // --- セッション開始 ---
         async function startSession() {
             try {
-                updateStatus('INITIALIZING...', 'info');
+                // 【重要】APIキー未入力のチェック
+                if (!customApiKey) {
+                    showToast('右上の「設定」からGemini APIキーを入力してね！', 'error');
+                    return;
+                }
+
+                updateStatus('準備しています...', 'info');
                 startBtn.disabled = true;
+
+                // 【重要】セキュアコンテキストチェック (HTTP環境でのマイクエラー防止)
+                if (!window.isSecureContext && !isHttpFallback) {
+                    console.warn("HTTP環境のため標準モードにフォールバックします");
+                    switchToHttpMode("安全な通信環境(HTTPS)ではないため、文字と合成音声のモードで始めるね。");
+                    return;
+                }
 
                 ai = new GoogleGenAI({ apiKey: customApiKey });
 
@@ -644,10 +632,17 @@
                     return;
                 }
 
-                // マイク取得
-                mediaStream = await navigator.mediaDevices.getUserMedia({
-                    audio: { channelCount: 1, sampleRate: 16000, echoCancellation: true, noiseSuppression: true }
-                }).catch(() => null);
+                // マイク取得を安全に実行
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    mediaStream = await navigator.mediaDevices.getUserMedia({
+                        audio: { channelCount: 1, sampleRate: 16000, echoCancellation: true, noiseSuppression: true }
+                    }).catch(e => {
+                        console.warn("マイク取得エラー:", e);
+                        return null; // 拒否やエラー時はnullで続行
+                    });
+                } else {
+                    console.warn("マイクAPIが利用できません");
+                }
 
                 inputAudioContext = new (window.AudioContext || window.webkitAudioContext)({sampleRate: 16000});
                 outputAudioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -662,9 +657,8 @@
                 const workletBlob = new Blob([workletCode], { type: "application/javascript" });
                 await inputAudioContext.audioWorklet.addModule(URL.createObjectURL(workletBlob));
                 
-                updateStatus('CONNECTING...', 'info');
+                updateStatus('AIとつないでいます...', 'info');
 
-                // Canvas環境に合わせてモデル指定は gemini-2.0-flash-exp (Live API対応推奨モデル)
                 const connectPromise = ai.live.connect({
                     model: 'gemini-2.0-flash-exp', 
                     callbacks: {
@@ -672,10 +666,10 @@
                         onmessage: handleServerMessage,
                         onerror: (err) => { 
                             console.warn("Live API Error:", err); 
-                            switchToHttpMode("WebSocket Connection Blocked. Switching to Standard Mode.");
+                            switchToHttpMode("通信エラーのため、標準モード（テキストと合成音声）に切り替えるね。");
                         },
                         onclose: () => { 
-                            updateStatus('SESSION ENDED', 'info'); 
+                            updateStatus('通話しゅうりょう', 'info'); 
                             cleanupSession(); 
                         }
                     },
@@ -692,7 +686,7 @@
 
                 sessionPromise = connectPromise.catch((err) => {
                     console.warn("Live API Exception:", err);
-                    switchToHttpMode("Running in restricted environment. Switched to Standard Mode.");
+                    switchToHttpMode("環境の制限のため、標準モードで始めるね。");
                     return null;
                 });
 
@@ -704,14 +698,16 @@
                 
             } catch (error) {
                 console.warn("Setup Failed, switching to HTTP Fallback:", error);
-                switchToHttpMode("Starting Standard Mode.");
+                // エラー時もボタンのロックを確実に解除
+                startBtn.disabled = false; 
+                switchToHttpMode("通信がうまくいかなかったので、標準モードで始めるよ。");
             }
         }
 
         function switchToHttpMode(reasonMessage) {
             isHttpFallback = true;
-            modeBadge.textContent = "STANDARD (HTTP)";
-            modeBadge.className = "text-[10px] font-bold text-amber-500 tracking-widest uppercase";
+            modeBadge.textContent = "標準モード";
+            modeBadge.className = "text-[11px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full";
             showToast(reasonMessage);
             cleanupSession();
             startHttpSession();
@@ -720,20 +716,20 @@
         function startHttpSession() {
             isSessionActive = true;
             avatarContainer.classList.add('is-active');
-            updateStatus('SYSTEM READY', 'active');
+            updateStatus('お話しできるよ！', 'active');
             
             startBtn.classList.add('hidden');
             stopBtn.classList.remove('hidden');
             userInput.disabled = false;
             sendBtn.disabled = false;
             
-            showToast('Text or Audio output is ready.');
+            showToast('文字を入力するか、送信ボタンを押してね。');
         }
 
         function handleConnectionOpen() {
-            modeBadge.textContent = "LIVE (WS)";
-            modeBadge.className = "text-[10px] font-bold text-cyber-cyan tracking-widest uppercase";
-            updateStatus('SYSTEM READY', 'active');
+            modeBadge.textContent = "リアルタイム通信中";
+            modeBadge.className = "text-[11px] font-bold text-sky-700 bg-sky-100 px-2 py-0.5 rounded-full";
+            updateStatus('お話しできるよ！', 'active');
             
             startBtn.classList.add('hidden');
             stopBtn.classList.remove('hidden');
@@ -801,8 +797,13 @@
 
         // HTTPフォールバック時の送信処理
         async function handleHttpSend(text) {
+            if (!customApiKey) {
+                showToast('右上の「設定」からGemini APIキーを入力してね！', 'error');
+                return;
+            }
+
             addMessageToLog('user', text);
-            updateStatus('PROCESSING...', 'active');
+            updateStatus('かんがえ中...', 'active');
             
             try {
                 if (!ai) ai = new GoogleGenAI({ apiKey: customApiKey });
@@ -815,16 +816,16 @@
                     }
                 });
 
-                const replyText = response.text || "通信エラーが発生しました。";
+                const replyText = response.text || "ごめんね、うまく通信できなかったみたい。";
                 addMessageToLog('ai', replyText);
-                updateStatus('SYSTEM READY', 'active');
+                updateStatus('お話しできるよ！', 'active');
 
                 speakText(replyText);
 
             } catch (err) {
                 console.error("HTTP GenAI Error:", err);
-                showToast("System Error Occurred.", "error");
-                updateStatus('SYSTEM ERROR', 'error');
+                showToast("エラーが起きちゃったみたい", "error");
+                updateStatus('エラー', 'error');
             }
         }
 
@@ -834,7 +835,7 @@
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = 'ja-JP';
                 utterance.rate = 1.05;
-                utterance.pitch = 1.0; 
+                utterance.pitch = 1.1;
 
                 utterance.onstart = () => startSynthLipSync();
                 utterance.onend = () => stopSynthLipSync();
@@ -878,15 +879,15 @@
             startBtn.classList.remove('hidden');
             stopBtn.classList.add('hidden');
             
-            userInput.placeholder = "Type your message...";
+            userInput.placeholder = "メッセージを入力...";
             imgIdle.classList.remove('hidden-state');
             imgTalking.classList.add('hidden-state');
-            visualizerBars.forEach(bar => bar.style.height = '4px');
+            visualizerBars.forEach(bar => bar.style.height = '5px');
             
-            updateStatus('SYSTEM STANDBY', 'info');
+            updateStatus('待機中', 'info');
             if(!isHttpFallback) {
-                modeBadge.textContent = "OFFLINE";
-                modeBadge.className = "text-[10px] font-bold text-slate-400 tracking-widest uppercase";
+                modeBadge.textContent = "待機中";
+                modeBadge.className = "text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full";
             }
         }
 
