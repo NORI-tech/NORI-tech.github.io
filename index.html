@@ -471,17 +471,27 @@
             }
             const averageVolume = sum / dataArray.length;
 
-            // 口パク感度の向上（平均音量 または ピーク音量で判定）
-            if (averageVolume > 5 || maxVal > 20) {
-                imgIdle.classList.add('hidden-state');
-                imgTalking.classList.remove('hidden-state');
+            // AIが現在会話中（音声再生中またはアナライザーで音量検知）かどうか
+            const isSpeaking = (activeAudioSources.size > 0 && outputAudioContext && outputAudioContext.currentTime < nextStartTime) || averageVolume > 5 || maxVal > 18;
+
+            if (isSpeaking) {
+                // 約130ms周期で「開」「閉」画像を交互にトグルして口をパクパク動かす
+                const mouthToggle = Math.floor(Date.now() / 130) % 2 === 0;
+                if (mouthToggle) {
+                    imgIdle.classList.add('hidden-state');
+                    imgTalking.classList.remove('hidden-state');
+                } else {
+                    imgIdle.classList.remove('hidden-state');
+                    imgTalking.classList.add('hidden-state');
+                }
             } else {
+                // 喋っていない時は口を閉じた状態にする
                 imgIdle.classList.remove('hidden-state');
                 imgTalking.classList.add('hidden-state');
             }
 
             visualizerBars.forEach((bar, index) => {
-                const val = dataArray[index * 3] || 0;
+                const val = isSpeaking ? (dataArray[index * 3] || Math.floor(Math.random() * 120 + 30)) : (dataArray[index * 3] || 0);
                 const height = Math.max(6, (val / 255) * 22);
                 bar.style.height = `${height}px`;
             });
