@@ -464,12 +464,15 @@
             analyser.getByteFrequencyData(dataArray);
 
             let sum = 0;
+            let maxVal = 0;
             for (let i = 0; i < dataArray.length; i++) {
                 sum += dataArray[i];
+                if (dataArray[i] > maxVal) maxVal = dataArray[i];
             }
             const averageVolume = sum / dataArray.length;
 
-            if (averageVolume > 12) {
+            // 口パク感度の向上（平均音量 または ピーク音量で判定）
+            if (averageVolume > 5 || maxVal > 20) {
                 imgIdle.classList.add('hidden-state');
                 imgTalking.classList.remove('hidden-state');
             } else {
@@ -478,7 +481,7 @@
             }
 
             visualizerBars.forEach((bar, index) => {
-                const val = dataArray[index * 4] || 0;
+                const val = dataArray[index * 3] || 0;
                 const height = Math.max(6, (val / 255) * 22);
                 bar.style.height = `${height}px`;
             });
@@ -696,20 +699,33 @@
                 currentOutputText = '';
             }
 
-            const audioB64 = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
-            if (audioB64 && outputAudioContext) {
-                nextStartTime = Math.max(nextStartTime, outputAudioContext.currentTime);
-                const audioBuffer = await decodeBase64ToAudioBuffer(audioB64, outputAudioContext, 24000);
-                
-                const source = outputAudioContext.createBufferSource();
-                source.buffer = audioBuffer;
-                
-                source.connect(analyser); 
-                source.addEventListener('ended', () => activeAudioSources.delete(source));
-                
-                source.start(nextStartTime);
-                nextStartTime += audioBuffer.duration;
-                activeAudioSources.add(source);
+            // 音声データの受信と再生処理（parts配列全体から確実にデータを抽出）
+            const parts = message.serverContent?.modelTurn?.parts;
+            if (parts && outputAudioContext) {
+                for (const part of parts) {
+                    const audioB64 = part.inlineData?.data;
+                    if (audioB64) {
+                        if (outputAudioContext.state === 'suspended') {
+                            await outputAudioContext.resume();
+                        }
+                        nextStartTime = Math.max(nextStartTime, outputAudioContext.currentTime);
+                        const audioBuffer = await decodeBase64ToAudioBuffer(audioB64, outputAudioContext, 24000);
+                        
+                        const source = outputAudioContext.createBufferSource();
+                        source.buffer = audioBuffer;
+                        
+                        source.connect(analyser); 
+                        source.addEventListener('ended', () => activeAudioSources.delete(source));
+                        
+                        source.start(nextStartTime);
+                        nextStartTime += audioBuffer.duration;
+                        activeAudioSources.add(source);
+
+                        if (!isAnimating) {
+                            updateLipSync();
+                        }
+                    }
+                }
             }
 
             if (message.serverContent?.interrupted) {
@@ -768,6 +784,7 @@
 
         function cleanupSession() {
             isSessionActive = false;
+            isAnimating = false;
             avatarContainer.classList.remove('is-active');
             stopSynthLipSync();
             if ('speechSynthesis' in window) window.speechSynthesis.cancel();
