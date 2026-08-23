@@ -495,17 +495,10 @@
             }
             const averageVolume = sum / dataArray.length;
 
-            // AIの発声判定
-            const isSpeaking = averageVolume > 5 || maxVal > 20;
-
-            if (isSpeaking) {
-                // 会話中は220msごとにゆったり切り替え（背景が透けないようimgTalkingの着脱のみで行う）
-                const mouthOpen = Math.floor(Date.now() / 220) % 2 === 0;
-                if (mouthOpen) {
-                    imgTalking.classList.remove('hidden-state');
-                } else {
-                    imgTalking.classList.add('hidden-state');
-                }
+            // 音声の強弱（音量レベル）に合わせて口を開閉
+            // 音が一定以上の強さの時に口を開き、音が弱い時や言葉の合間は閉じる
+            if (averageVolume > 8 || maxVal > 25) {
+                imgTalking.classList.remove('hidden-state');
             } else {
                 imgTalking.classList.add('hidden-state');
             }
