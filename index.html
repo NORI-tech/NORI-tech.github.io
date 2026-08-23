@@ -25,7 +25,12 @@
             box-shadow: 0 10px 25px rgba(125, 211, 252, 0.5);
             background-color: #f0f9ff;
             border: 6px solid #bae6fd;
-            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+            /* 開始・終了時の描画レイヤー切り替えに伴うフレームチラつき防止 */
+            transform: translateZ(0);
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            will-change: transform, box-shadow, border-color;
         }
 
         /* ふわふわ浮遊アニメーション */
@@ -629,7 +634,6 @@
                 if (!session) return; // エラー時はHTTPモードへ移行
 
                 isSessionActive = true;
-                avatarContainer.classList.add('is-active');
                 
             } catch (error) {
                 console.warn("Live API Failed, switching to HTTP Fallback:", error);
@@ -642,7 +646,7 @@
             modeBadge.textContent = "標準モード (HTTP)";
             modeBadge.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700";
             showToast(reasonMessage);
-            cleanupSession();
+            cleanupSession(false); // is-activeを一瞬外すことによるフリッカーを防止
             startHttpSession();
         }
 
@@ -669,6 +673,7 @@
             
             userInput.disabled = false;
             sendBtn.disabled = false;
+            avatarContainer.classList.add('is-active');
             
             if (mediaStream && inputAudioContext) {
                 const source = inputAudioContext.createMediaStreamSource(mediaStream);
@@ -786,10 +791,12 @@
             }
         }
 
-        function cleanupSession() {
+        function cleanupSession(resetActiveState = true) {
             isSessionActive = false;
             isAnimating = false;
-            avatarContainer.classList.remove('is-active');
+            if (resetActiveState) {
+                avatarContainer.classList.remove('is-active');
+            }
             stopSynthLipSync();
             if ('speechSynthesis' in window) window.speechSynthesis.cancel();
 
