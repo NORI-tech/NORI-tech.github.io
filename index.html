@@ -48,7 +48,7 @@
             top: 0;
             left: 0;
             object-fit: cover;
-            transition: opacity 0.15s ease;
+            transition: opacity 0.05s ease; /* チラツキ防止のため短時間に設定 */
         }
 
         .hidden-state {
@@ -134,7 +134,9 @@
         <!-- アバターが限界まで大きくなるよう、高さを基準(vh)にした可変幅に変更 -->
         <div id="avatar-container" class="h-full w-full max-w-[40vh] md:max-w-[50vh] lg:max-w-[55vh] flex flex-col items-center justify-center gap-3 md:gap-4 mt-2">
             <div class="avatar-wrapper relative flex-shrink-0 w-full">
+                <!-- 待機画像(ベース画像として常時表示しチラつきを防ぐ) -->
                 <img id="img-idle" src="idle.jpg" alt="待機中" class="avatar-img" onerror="this.onerror=null; this.src='https://placehold.co/800x800/bae6fd/0284c7?text=Idle';">
+                <!-- お話し中画像(口を開けるときだけ重ねて表示) -->
                 <img id="img-talking" src="talking.jpg" alt="お話し中" class="avatar-img hidden-state" onerror="this.onerror=null; this.src='https://placehold.co/800x800/bae6fd/0284c7?text=Talking';">
             </div>
 
@@ -452,7 +454,6 @@
             if (!analyser || !isSessionActive) {
                 if (!synthSpeakingInterval) {
                     isAnimating = false;
-                    imgIdle.classList.remove('hidden-state');
                     imgTalking.classList.add('hidden-state');
                     visualizerBars.forEach(bar => bar.style.height = '6px');
                 }
@@ -471,27 +472,23 @@
             }
             const averageVolume = sum / dataArray.length;
 
-            // AIが現在会話中（音声再生中またはアナライザーで音量検知）かどうか
-            const isSpeaking = (activeAudioSources.size > 0 && outputAudioContext && outputAudioContext.currentTime < nextStartTime) || averageVolume > 5 || maxVal > 18;
+            // AIの発声判定
+            const isSpeaking = averageVolume > 5 || maxVal > 20;
 
             if (isSpeaking) {
-                // 約130ms周期で「開」「閉」画像を交互にトグルして口をパクパク動かす
-                const mouthToggle = Math.floor(Date.now() / 130) % 2 === 0;
-                if (mouthToggle) {
-                    imgIdle.classList.add('hidden-state');
+                // 会話中は220msごとにゆったり切り替え（背景が透けないようimgTalkingの着脱のみで行う）
+                const mouthOpen = Math.floor(Date.now() / 220) % 2 === 0;
+                if (mouthOpen) {
                     imgTalking.classList.remove('hidden-state');
                 } else {
-                    imgIdle.classList.remove('hidden-state');
                     imgTalking.classList.add('hidden-state');
                 }
             } else {
-                // 喋っていない時は口を閉じた状態にする
-                imgIdle.classList.remove('hidden-state');
                 imgTalking.classList.add('hidden-state');
             }
 
             visualizerBars.forEach((bar, index) => {
-                const val = isSpeaking ? (dataArray[index * 3] || Math.floor(Math.random() * 120 + 30)) : (dataArray[index * 3] || 0);
+                const val = dataArray[index * 3] || 0;
                 const height = Math.max(6, (val / 255) * 22);
                 bar.style.height = `${height}px`;
             });
@@ -506,16 +503,14 @@
             synthSpeakingInterval = setInterval(() => {
                 state = !state;
                 if (state) {
-                    imgIdle.classList.add('hidden-state');
                     imgTalking.classList.remove('hidden-state');
                 } else {
-                    imgIdle.classList.remove('hidden-state');
                     imgTalking.classList.add('hidden-state');
                 }
                 visualizerBars.forEach(bar => {
                     bar.style.height = `${Math.floor(Math.random() * 16) + 6}px`;
                 });
-            }, 120);
+            }, 220);
         }
 
         function stopSynthLipSync() {
@@ -523,7 +518,6 @@
                 clearInterval(synthSpeakingInterval);
                 synthSpeakingInterval = null;
             }
-            imgIdle.classList.remove('hidden-state');
             imgTalking.classList.add('hidden-state');
             visualizerBars.forEach(bar => bar.style.height = '6px');
         }
@@ -828,7 +822,6 @@
             stopBtn.classList.add('hidden');
             
             userInput.placeholder = "メッセージを入力してね";
-            imgIdle.classList.remove('hidden-state');
             imgTalking.classList.add('hidden-state');
             visualizerBars.forEach(bar => bar.style.height = '6px');
         }
