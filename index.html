@@ -134,7 +134,7 @@
         </button>
     </header>
 
-  <!-- メインコンテンツ -->
+    <!-- メインコンテンツ -->
     <main class="flex-none h-[45vh] md:h-[55vh] lg:h-[60vh] relative flex flex-col items-center justify-center p-2 md:p-4">
         <!-- アバターが限界まで大きくなるよう、高さを基準(vh)にした可変幅に変更 -->
         <div id="avatar-container" class="h-full w-full max-w-[40vh] md:max-w-[50vh] lg:max-w-[55vh] flex flex-col items-center justify-center gap-3 md:gap-4 mt-2">
@@ -217,14 +217,16 @@
                         <input type="password" id="api-key-input" placeholder="AIzaSy..." class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-sky-400 font-mono text-sm">
                     </div>
 
-                    <!-- ボイス設定 -->
+                    <!-- ボイス設定 (男性・女性を1つずつ追加し、全6種類) -->
                     <div>
                         <label class="block text-sm font-bold text-slate-700 mb-2">AIのボイス (声)</label>
                         <select id="voice-select" class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-sky-400 font-bold text-slate-700 appearance-none">
                             <option value="Aoede">お姉さん (Aoede - 優しい)</option>
                             <option value="Kore">お姉さん2 (Kore - しっかり)</option>
+                            <option value="Leda">お姉さん3 (Leda - 若々しい)</option>
                             <option value="Puck">お兄さん (Puck - 元気)</option>
                             <option value="Zephyr">お兄さん2 (Zephyr - 明るい)</option>
+                            <option value="Charon">お兄さん3 (Charon - 落ち着いた)</option>
                         </select>
                     </div>
 
