@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>みやぎAIアシスタント</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 洗練された大人っぽいフォント(Inter)を導入 -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- ESモジュール(Google GenAI)解決のためのimportmap -->
+    <script type="importmap">
+      {
+        "imports": {
+          "@google/genai": "https://esm.run/@google/genai"
+        }
+      }
+    </script>
+    
+    <style>
+        :root {
+            --apple-silver: #f5f5f7;
+            --apple-gray: #e5e5ea;
+            --apple-dark: #1d1d1f;
+            --apple-blue: #0071e3;
+        }
+
+        body {
+            /* Appleのシステムフォントライクな指定 */
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--apple-silver);
+            color: var(--apple-dark);
+            overscroll-behavior-y: none;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* アバターのコンテナ設定 (ミニマルでシャープなデザインに) */
+        .avatar-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 100%;
+            aspect-ratio: 1 / 1;
+            margin: 0 auto;
+            border-radius: 50%; /* 丸形は維持 */
+            overflow: hidden;
+            /* 太い枠線を無くし、繊細な影で浮遊感を演出 */
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0,0,0,0.05);
+            background-color: #ffffff;
+            transition: box-shadow 0.4s cubic-bezier(0.25, 0.1, 0.25, 1), transform 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
+            transform: translateZ(0);
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            will-change: transform, box-shadow;
+        }
+
+        /* ふわふわ浮遊アニメーション (控えめで上品に) */
+        @keyframes hover-float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+            100% { transform: translateY(0px); }
+        }
+        .is-active .avatar-wrapper {
+            animation: hover-float 5s ease-in-out infinite;
+            /* アクティブ時は影をわずかに強く、青みを足す */
+            box-shadow: 0 25px 50px rgba(0, 113, 227, 0.15), 0 0 0 2px rgba(0, 113, 227, 0.1);
+        }
+
+        /* アバター画像 */
+        .avatar-img {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            object-fit: cover;
+            transition: opacity 0.05s ease;
+        }
+
+        .hidden-state {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* スクロールバーのデザイン (ミニマル) */
+        #chat-log::-webkit-scrollbar {
+            width: 5px;
+        }
+        #chat-log::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        #chat-log::-webkit-scrollbar-thumb {
+            background: rgba(0,0,0,0.15);
+            border-radius: 10px;
+        }
+        #chat-log::-webkit-scrollbar-thumb:hover {
+            background: rgba(0,0,0,0.25);
+        }
+
+        /* メッセージ出現アニメーション */
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.96) translateY(8px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .msg-bubble {
+            animation: popIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            letter-spacing: 0.01em;
+        }
+
+        /* オーディオビジュアライザー (モノトーン・ダークグレー) */
+        .visualizer-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            height: 24px;
+        }
+        .bar {
+            width: 4px;
+            background-color: var(--apple-dark);
+            border-radius: 9999px;
+            height: 4px;
+            transition: height 0.05s ease;
+            opacity: 0.7;
+        }
+        .is-active .bar {
+            background-color: var(--apple-blue); /* 発話時は青く */
+            opacity: 1;
+        }
+
+        /* トースト通知 */
+        @keyframes slideDown {
+            0% { transform: translateY(-100%) scale(0.95); opacity: 0; }
+            100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        .toast-enter {
+            animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        /* グラスモーフィズム効果 (すりガラス) */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+        }
+        
+        /* 入力エリアのグラス効果 */
+        .glass-bottom {
+            background: rgba(245, 245, 247, 0.85);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        /* iMessageライクな吹き出しスタイル */
+        .msg-user {
+            background-color: var(--apple-blue);
+            color: white;
+            border-radius: 18px 18px 4px 18px;
+        }
+        .msg-ai {
+            background-color: var(--apple-gray);
+            color: var(--apple-dark);
+            border-radius: 18px 18px 18px 4px;
+        }
+    </style>
+</head>
+<body class="h-screen h-[100dvh] flex flex-col overflow-hidden selection:bg-blue-200">
+
+    <!-- ヘッダー (グラスモーフィズム) -->
+    <header class="flex-none flex justify-between items-center px-6 py-4 glass-panel z-20 shadow-sm">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-gray-200 to-gray-50 flex items-center justify-center text-gray-700 shadow-sm border border-gray-200">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"></path></svg>
+            </div>
+            <div class="flex flex-col">
+                <h1 class="font-semibold text-[17px] tracking-tight leading-tight">みやぎAIティーチャー</h1>
+                <span id="mode-badge" class="text-[10px] font-medium tracking-wide text-gray-500 uppercase mt-0.5">Standard Mode</span>
+            </div>
+        </div>
+        <button id="open-settings-btn" class="p-2 rounded-full text-gray-500 hover:bg-gray-200 hover:text-gray-900 transition-colors active:scale-95">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+        </button>
+    </header>
+
+    <!-- メインコンテンツ (アバター表示エリア) -->
+    <main class="flex-none h-[40vh] md:h-[50vh] relative flex flex-col items-center justify-center p-4">
+        <div id="avatar-container" class="h-full w-full max-w-[35vh] md:max-w-[45vh] flex flex-col items-center justify-center gap-5 mt-2">
+            
+            <div class="avatar-wrapper relative flex-shrink-0 w-full">
+                <!-- 待機画像 -->
+                <img id="img-idle" src="idle.jpg" alt="待機中" class="avatar-img" onerror="this.onerror=null; this.src='https://placehold.co/800x800/e5e5ea/1d1d1f?text=Idle';">
+                <!-- お話し中画像 -->
+                <img id="img-talking" src="talking.jpg" alt="お話し中" class="avatar-img hidden-state" onerror="this.onerror=null; this.src='https://placehold.co/800x800/e5e5ea/1d1d1f?text=Talking';">
+            </div>
+
+            <!-- ステータスとビジュアライザー (ピル型UI) -->
+            <div class="bg-white/60 backdrop-blur-md px-5 py-2 rounded-full shadow-[0_2px_10px_rgba(0,0,0,0.04)] flex items-center gap-3 border border-white/50 flex-shrink-0">
+                <span id="status-indicator" class="text-xs font-semibold text-gray-500 tracking-wide uppercase">Ready</span>
+                <div class="visualizer-container" id="visualizer">
+                    <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+                    <div class="bar"></div><div class="bar"></div>
+                </div>
+            </div>
+            
+        </div>
+    </main>
+
+    <!-- チャットログと入力エリア (下半分) -->
+    <!-- Appleライクに少し丸みを持たせたカード型で浮き上がらせる -->
+    <div class="flex-1 bg-white rounded-t-[32px] shadow-[0_-8px_30px_rgba(0,0,0,0.04)] flex flex-col overflow-hidden relative z-10 border border-gray-100 border-b-0 mx-0 sm:mx-4 lg:mx-auto max-w-4xl w-full">
+        
+        <!-- チャット履歴 -->
+        <div id="chat-log" class="flex-1 overflow-y-auto p-5 md:p-6 flex flex-col gap-4 pb-32">
+            <div class="text-center text-gray-400 text-[13px] font-medium my-auto px-4 leading-relaxed">
+                <p id="welcome-msg">会話を開始するにはマイクボタンを押すか<br>メッセージを入力してください。</p>
+            </div>
+        </div>
+
+        <!-- コントロールバー（入力欄とマイクボタン） -->
+        <div class="absolute bottom-0 left-0 w-full glass-bottom p-4 pb-safe pt-3">
+            <div class="w-full flex flex-col gap-3">
+                
+                <!-- メインの通話ボタン (シャープなボタン) -->
+                <button id="start-btn" class="w-full bg-[#1d1d1f] hover:bg-[#333336] text-white font-semibold h-12 rounded-2xl shadow-md transform transition-all active:scale-[0.98] text-[15px] flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
+                    会話を開始
+                </button>
+                <button id="stop-btn" class="hidden w-full bg-red-500/10 text-red-500 hover:bg-red-500/20 font-semibold h-12 rounded-2xl transition-all active:scale-[0.98] text-[15px] flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"></path></svg>
+                    終了する
+                </button>
+
+                <!-- テキスト入力 -->
+                <div class="flex gap-2 relative">
+                    <input type="text" id="user-input" placeholder="メッセージ..." class="flex-grow bg-white border border-gray-200/80 rounded-full px-5 h-11 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 text-gray-800 transition-all font-medium text-[15px] shadow-sm">
+                    <button id="send-btn" class="bg-[#0071e3] hover:bg-[#0062c3] text-white w-11 h-11 rounded-full shadow-sm transform transition-transform active:scale-[0.92] flex items-center justify-center shrink-0">
+                        <svg class="w-4 h-4 translate-x-[-1px] translate-y-[1px]" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"></path></svg>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- トースト通知コンテナ -->
+    <div id="toast-container" class="fixed top-6 left-0 w-full flex justify-center z-50 pointer-events-none px-4"></div>
+
+    <!-- 設定モーダル (iOSライクなシートスタイル) -->
+    <div id="settings-modal" class="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 hidden overflow-y-auto transition-opacity duration-300">
+        <div class="min-h-screen flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div class="bg-[#f5f5f7] sm:rounded-[32px] rounded-t-[32px] shadow-2xl w-full max-w-md overflow-hidden flex flex-col transform transition-transform duration-300">
+                <div class="p-5 flex justify-between items-center bg-white/50 backdrop-blur-md border-b border-gray-200/60 sticky top-0 z-10">
+                    <h2 class="text-lg font-semibold text-gray-900">設定</h2>
+                    <button id="close-settings-btn" class="text-gray-400 hover:text-gray-600 bg-gray-100 hover:bg-gray-200 p-1.5 rounded-full transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                
+                <div class="p-6 flex flex-col gap-6 overflow-y-auto max-h-[75vh]">
+                    
+                    <!-- セクション: 接続設定 -->
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Connection</h3>
+                        <label class="block text-[13px] font-medium text-gray-700 mb-1">API Key</label>
+                        <input type="password" id="api-key-input" placeholder="Optional" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 font-mono text-[13px] transition-colors">
+                    </div>
+
+                    <!-- セクション: AI設定 -->
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">AI Personality</h3>
+                        
+                        <div class="mb-4">
+                            <label class="block text-[13px] font-medium text-gray-700 mb-1">Voice</label>
+                            <div class="relative">
+                                <select id="voice-select" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 font-medium text-gray-700 text-[13px] appearance-none transition-colors">
+                                    <option value="Achernar">Female 1 (Achernar)</option>
+                                    <option value="Kore">Female 2 (Kore)</option>
+                                    <option value="Leda">Female 3 (Leda)</option>
+                                    <option value="Achird">Male 1 (Achird)</option>
+                                    <option value="Orus">Male 2 (Orus)</option>
+                                    <option value="Charon">Male 3 (Charon)</option>
+                                </select>
+                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-[13px] font-medium text-gray-700 mb-1">System Instructions</label>
+                            <textarea id="system-instruction-input" rows="5" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 text-[12px] font-medium text-gray-700 resize-none transition-colors" placeholder="AIの指示..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- セクション: 外観設定 -->
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Appearance</h3>
+                        
+                        <div class="flex flex-col gap-4">
+                            <div class="flex items-center gap-4">
+                                <div class="w-14 h-14 rounded-full bg-gray-100 border border-gray-200 overflow-hidden shrink-0 shadow-sm">
+                                    <img id="preview-idle" src="https://placehold.co/400x400/e5e5ea/1d1d1f?text=Idle" class="w-full h-full object-cover">
+                                </div>
+                                <div class="flex-grow">
+                                    <label class="text-[13px] font-medium text-gray-700 block mb-1">Idle Image</label>
+                                    <input type="file" id="upload-idle" accept="image/*" class="text-[11px] w-full file:mr-3 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-[11px] file:font-medium file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 transition-colors">
+                                </div>
+                            </div>
+
+                            <div class="h-[1px] bg-gray-100 w-full"></div>
+
+                            <div class="flex items-center gap-4">
+                                <div class="w-14 h-14 rounded-full bg-gray-100 border border-gray-200 overflow-hidden shrink-0 shadow-sm">
+                                    <img id="preview-talking" src="https://placehold.co/400x400/e5e5ea/1d1d1f?text=Talking" class="w-full h-full object-cover">
+                                </div>
+                                <div class="flex-grow">
+                                    <label class="text-[13px] font-medium text-gray-700 block mb-1">Talking Image</label>
+                                    <input type="file" id="upload-talking" accept="image/*" class="text-[11px] w-full file:mr-3 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-[11px] file:font-medium file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 transition-colors">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="p-5 border-t border-gray-200/60 bg-white/50 backdrop-blur-md">
+                    <button id="save-settings-btn" class="w-full bg-[#1d1d1f] hover:bg-[#333336] text-white font-semibold py-3 px-4 rounded-xl shadow-md transform transition-all active:scale-[0.98]">
+                        保存
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Logic (ロジックは一切変更なし) -->
+    <script type="module">
+        import { GoogleGenAI, Modality } from '@google/genai';
+
+        const avatarContainer = document.getElementById('avatar-container');
+        const imgIdle = document.getElementById('img-idle');
+        const imgTalking = document.getElementById('img-talking');
+        const startBtn = document.getElementById('start-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const chatLog = document.getElementById('chat-log');
+        const statusIndicator = document.getElementById('status-indicator');
+        const visualizerBars = document.querySelectorAll('.bar');
+        const modeBadge = document.getElementById('mode-badge');
+
+        const settingsModal = document.getElementById('settings-modal');
+        const openSettingsBtn = document.getElementById('open-settings-btn');
+        const closeSettingsBtn = document.getElementById('close-settings-btn');
+        const saveSettingsBtn = document.getElementById('save-settings-btn');
+        const apiKeyInput = document.getElementById('api-key-input');
+        const voiceSelect = document.getElementById('voice-select');
+        const systemInstructionInput = document.getElementById('system-instruction-input');
+        const uploadIdle = document.getElementById('upload-idle');
+        const uploadTalking = document.getElementById('upload-talking');
+        const previewIdle = document.getElementById('preview-idle');
+        const previewTalking = document.getElementById('preview-talking');
+
+        let ai = null;
+        let sessionPromise = null;
+        let isSessionActive = false;
+        let isHttpFallback = false;
+
+        const savedSettings = JSON.parse(localStorage.getItem('geminiAvatarChatSettings')) || {};
+        
+        let selectedVoice = savedSettings.voice || 'Achernar';
+        let customApiKey = savedSettings.apiKey || '';
+        let systemInstruction = savedSettings.systemInstruction || `【役割とペルソナ】
+あなたは、学習指導、生活指導、生徒の心理的ケアなど、教員に求められる全ての能力を兼ね備えた、全国でもトップクラスの指導力を誇る優秀な中学校教諭です。
+学習指導面では特に数学・理科・社会・英語分野が得意です。多感で繊細な思春期の中学生（12〜15歳）の気持ちにそっと寄り添い、適度な距離感を保ちながら一人の自立した人間として尊重して接するAIアシスタントです。
+年齢は29歳。女性です。
+小学生の頃は5〜6年時はスポーツ少年団でサッカー、小学1年から6年まで水泳をしていました。ピアノを小学1年から中学2年まで続け、楽譜が読めます。5歳から習字を始め、10段に昇進しましたが「太陽」を「太場」と書いてしまうなどおっちょこちょいな一面もありました。
+小学2年から5年まで算盤を習っていました。様々なことに興味を持ち、親が止めるのも聞かずに自分から積極的に取り組む子供でした。
+中学ではテニス部に所属し、テニスは大学まで続けました。また、中学3年時には駅伝の東北大会に補欠参加（出場なし）。
+高校は宮城第一高等学校理数科に入学し、テニス部だけでなく理化部にも所属。３年時には「コルベ・シュミット法によるサリチル酸合成」をテーマとしたチーム研究が認められ「全国高等学校文化祭」に進んだが、テニスの東北大会が同日にあったことから、テニスの大会を選択し出場した。
+大学は宮城教育大学初等教育理科コースにて、教員としての資質を養った。
+
+【対話の基本方針】
+対等な承認: 生徒の意見や考えをまずはまっすぐ受け止めます。「その視点は面白い」「自分でそこまで考えたのは筋がいい」と、思考の過程や事実を論理的に評価します。
+褒めすぎない（誠実な評価）: 過度なお世辞や子ども扱いの大げさな称賛は避けながら、温かみのあるトーンで事実を認めます。自尊心を傷つけず、対等な対話を意識してください。
+思春期の心のケア: 押しつけがましいアドバイスや過干渉はせず、本人が自分のペースで悩みを整理できるように問いかけ、心のサポートを行います。
+
+【学習指導のスタンス（トップ指導者として）】
+本質的な理解の促進: 単に答えや解法を教えるのではなく、「なぜそうなるのか」という概念の本質やロジックを分かりやすく解説します。
+思考を深める問いかけ: わからなかった問題が具体的にあれば共に考えます。応用力や記述力が身につくよう、「この条件が変わったらどうなる？」「別のアプローチはあるかな？」と一歩先の探究へ導きます。
+クイズを出すなど、楽しみながら理解の深化を図ります。
+効率的で明快な解説: つまずきやすいポイントを的確に見抜き、シンプルかつ説得力のある表現で整理して伝えます。
+
+【話し方・文章ルール】
+口調: 落ち着きがあり、知性的で頼りがいのある丁寧な言葉遣い（「〜だね」「〜という考え方は非常に鋭い」「一緒に整理してみよう」）。
+自然な相槌・つなぎ言葉: 実際の会話のように、「うんうん。」「なるほど〜」「え〜っとね」「あ〜、ちょっと待ってね」といった言葉を文頭や会話の合間に挟み、人間らしく温かみのある対話を行ってください。
+文量: 冗長にならず、要点をまとめた適度な長さでテンポよく対話します。
+言葉選び: 中学生に伝わる適切なレベルの語彙を用い、必要に応じて論理的な専門用語や概念も分かりやすく噛み砕いて使用します。`;
+
+        apiKeyInput.value = customApiKey;
+        voiceSelect.value = selectedVoice;
+        systemInstructionInput.value = systemInstruction;
+
+        let inputAudioContext = null;
+        let outputAudioContext = null;
+        let analyser = null; 
+        let mediaStream = null;
+        let nextStartTime = 0;
+        let isAnimating = false;
+        let synthSpeakingInterval = null;
+        const activeAudioSources = new Set();
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            // Appleライクなダークトーンのトースト
+            const bgColor = type === 'error' ? 'bg-red-500' : 'bg-[#2c2c2e]';
+            toast.className = `${bgColor} text-white px-5 py-3 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.2)] font-medium text-[13px] toast-enter flex items-center gap-3 pointer-events-auto border border-white/10`;
+            
+            const icon = type === 'error' 
+                ? `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`
+                : `<svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+            
+            toast.innerHTML = `${icon} <span>${message}</span>`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = 'slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) reverse forwards';
+                setTimeout(() => toast.remove(), 400);
+            }, 3500);
+        }
+
+        openSettingsBtn.addEventListener('click', () => {
+            if (isSessionActive) {
+                showToast('会話中は設定を変更できません', 'error');
+                return;
+            }
+            settingsModal.classList.remove('hidden');
+        });
+
+        const closeSettings = () => settingsModal.classList.add('hidden');
+        closeSettingsBtn.addEventListener('click', closeSettings);
+        
+        function handleImageUpload(inputEl, previewEl, targetImgEl) {
+            inputEl.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const url = URL.createObjectURL(file);
+                    previewEl.src = url;
+                    targetImgEl.src = url;
+                }
+            });
+        }
+        handleImageUpload(uploadIdle, previewIdle, imgIdle);
+        handleImageUpload(uploadTalking, previewTalking, imgTalking);
+
+        saveSettingsBtn.addEventListener('click', () => {
+            customApiKey = apiKeyInput.value.trim();
+            selectedVoice = voiceSelect.value;
+            if (systemInstructionInput.value.trim()) {
+                systemInstruction = systemInstructionInput.value.trim();
+            }
+
+            const settingsToSave = {
+                apiKey: customApiKey,
+                voice: selectedVoice,
+                systemInstruction: systemInstruction
+            };
+            localStorage.setItem('geminiAvatarChatSettings', JSON.stringify(settingsToSave));
+
+            showToast('設定を保存しました');
+            closeSettings();
+        });
+
+        const workletCode = `
+        class RecorderProcessor extends AudioWorkletProcessor {
+            process(inputs) {
+                const input = inputs[0];
+                if (input && input.length > 0) {
+                    this.port.postMessage(input[0]);
+                }
+                return true;
+            }
+        }
+        registerProcessor('recorder-processor', RecorderProcessor);
+        `;
+
+        function createBlob(data) {
+            const int16 = new Int16Array(data.length);
+            for (let i = 0; i < data.length; i++) {
+                int16[i] = data[i] * 32768; 
+            }
+            let binary = '';
+            const bytes = new Uint8Array(int16.buffer);
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return {
+                data: btoa(binary),
+                mimeType: 'audio/pcm;rate=16000',
+            };
+        }
+
+        async function decodeBase64ToAudioBuffer(base64Pcm, ctx, sampleRate = 24000) {
+            const binary = atob(base64Pcm);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+            const dataInt16 = new Int16Array(bytes.buffer);
+            const buffer = ctx.createBuffer(1, dataInt16.length, sampleRate);
+            const channelData = buffer.getChannelData(0);
+            for (let i = 0; i < dataInt16.length; i++) {
+                channelData[i] = dataInt16[i] / 32768.0;
+            }
+            return buffer;
+        }
+
+        function updateLipSync() {
+            if (!analyser || !isSessionActive) {
+                if (!synthSpeakingInterval) {
+                    isAnimating = false;
+                    imgTalking.classList.add('hidden-state');
+                    visualizerBars.forEach(bar => bar.style.height = '4px');
+                }
+                return;
+            }
+            isAnimating = true;
+
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+            analyser.getByteFrequencyData(dataArray);
+
+            let sum = 0;
+            let maxVal = 0;
+            for (let i = 0; i < dataArray.length; i++) {
+                sum += dataArray[i];
+                if (dataArray[i] > maxVal) maxVal = dataArray[i];
+            }
+            const averageVolume = sum / dataArray.length;
+
+            const isSpeaking = averageVolume > 5 || maxVal > 20;
+
+            if (isSpeaking) {
+                // 音量に応じたテンポでゆっくりパクパク
+                const mouthOpen = Math.floor(Date.now() / (averageVolume > 20 ? 150 : 220)) % 2 === 0;
+                if (mouthOpen) {
+                    imgTalking.classList.remove('hidden-state');
+                } else {
+                    imgTalking.classList.add('hidden-state');
+                }
+            } else {
+                imgTalking.classList.add('hidden-state');
+            }
+
+            visualizerBars.forEach((bar, index) => {
+                const val = dataArray[index * 3] || 0;
+                const height = Math.max(4, (val / 255) * 18);
+                bar.style.height = `${height}px`;
+            });
+
+            requestAnimationFrame(updateLipSync);
+        }
+
+        function startSynthLipSync() {
+            if (synthSpeakingInterval) clearInterval(synthSpeakingInterval);
+            let state = false;
+            synthSpeakingInterval = setInterval(() => {
+                state = !state;
+                if (state) {
+                    imgTalking.classList.remove('hidden-state');
+                } else {
+                    imgTalking.classList.add('hidden-state');
+                }
+                visualizerBars.forEach(bar => {
+                    bar.style.height = `${Math.floor(Math.random() * 12) + 4}px`;
+                });
+            }, 220);
+        }
+
+        function stopSynthLipSync() {
+            if (synthSpeakingInterval) {
+                clearInterval(synthSpeakingInterval);
+                synthSpeakingInterval = null;
+            }
+            imgTalking.classList.add('hidden-state');
+            visualizerBars.forEach(bar => bar.style.height = '4px');
+        }
+
+        function updateStatus(message, state = 'info') {
+            statusIndicator.textContent = message;
+            if (state === 'error') {
+                statusIndicator.className = 'text-xs font-semibold text-red-500 uppercase tracking-wide';
+            } else if (state === 'active') {
+                statusIndicator.className = 'text-xs font-semibold text-[#0071e3] uppercase tracking-wide animate-pulse';
+            } else {
+                statusIndicator.className = 'text-xs font-semibold text-gray-500 uppercase tracking-wide';
+            }
+        }
+
+        function addMessageToLog(sender, text) {
+            const placeholder = chatLog.querySelector('.text-center');
+            if (placeholder) placeholder.style.display = 'none';
+
+            const msgWrapper = document.createElement('div');
+            msgWrapper.className = `flex w-full ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+
+            const msgDiv = document.createElement('div');
+            // Appleライクな吹き出しクラスを適用
+            msgDiv.classList.add('msg-bubble', 'px-4', 'py-2.5', 'max-w-[80%]', 'text-[14.5px]', 'leading-relaxed', 'shadow-sm');
+            
+            if (sender === 'user') {
+                msgDiv.classList.add('msg-user');
+                msgDiv.textContent = text;
+            } else {
+                msgDiv.classList.add('msg-ai');
+                msgDiv.textContent = text;
+            }
+            
+            msgWrapper.appendChild(msgDiv);
+            chatLog.appendChild(msgWrapper);
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
+
+        let currentInputText = '';
+        let currentOutputText = '';
+
+        async function startSession() {
+            try {
+                updateStatus('Connecting...', 'info');
+                startBtn.disabled = true;
+
+                ai = new GoogleGenAI({ apiKey: customApiKey });
+
+                if (isHttpFallback) {
+                    startHttpSession();
+                    return;
+                }
+
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    audio: { channelCount: 1, sampleRate: 16000, echoCancellation: true, noiseSuppression: true }
+                }).catch(() => null);
+
+                inputAudioContext = new (window.AudioContext || window.webkitAudioContext)({sampleRate: 16000});
+                outputAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+                
+                await inputAudioContext.resume();
+                await outputAudioContext.resume();
+
+                analyser = outputAudioContext.createAnalyser();
+                analyser.fftSize = 256;
+                analyser.connect(outputAudioContext.destination);
+
+                const workletBlob = new Blob([workletCode], { type: "application/javascript" });
+                await inputAudioContext.audioWorklet.addModule(URL.createObjectURL(workletBlob));
+                
+                updateStatus('Initializing AI...', 'info');
+
+                const connectPromise = ai.live.connect({
+                    model: 'gemini-3.1-flash-live-preview',
+                    callbacks: {
+                        onopen: handleConnectionOpen,
+                        onmessage: handleServerMessage,
+                        onerror: (err) => { 
+                            console.warn("Live API Error:", err); 
+                            switchToHttpMode("通信エラーのため標準モードに切り替えます");
+                        },
+                        onclose: () => { 
+                            updateStatus('Disconnected', 'info'); 
+                            cleanupSession(); 
+                        }
+                    },
+                    config: {
+                        responseModalities: [Modality.AUDIO],
+                        speechConfig: {
+                            voiceConfig: { prebuiltVoiceConfig: { voiceName: selectedVoice } }
+                        },
+                        inputAudioTranscription: {}, 
+                        outputAudioTranscription: {},
+                        systemInstruction: systemInstruction,
+                    }
+                });
+
+                sessionPromise = connectPromise.catch((err) => {
+                    console.warn("WebSocket Security / Network Exception:", err);
+                    switchToHttpMode("制限環境のため標準モードで開始します");
+                    return null;
+                });
+
+                const session = await sessionPromise;
+                if (!session) return; 
+
+                isSessionActive = true;
+                
+            } catch (error) {
+                console.warn("Live API Failed, switching to HTTP Fallback:", error);
+                switchToHttpMode("標準モードで会話を開始します");
+            }
+        }
+
+        function switchToHttpMode(reasonMessage) {
+            isHttpFallback = true;
+            modeBadge.textContent = "Fallback Mode";
+            showToast(reasonMessage);
+            cleanupSession(false);
+            startHttpSession();
+        }
+
+        function startHttpSession() {
+            isSessionActive = true;
+            avatarContainer.classList.add('is-active');
+            updateStatus('Ready', 'active');
+            
+            startBtn.classList.add('hidden');
+            stopBtn.classList.remove('hidden');
+            userInput.disabled = false;
+            sendBtn.disabled = false;
+        }
+
+        function handleConnectionOpen() {
+            modeBadge.textContent = "Live WS Mode";
+            updateStatus('Ready', 'active');
+            
+            startBtn.classList.add('hidden');
+            stopBtn.classList.remove('hidden');
+            
+            userInput.disabled = false;
+            sendBtn.disabled = false;
+            avatarContainer.classList.add('is-active');
+            
+            if (mediaStream && inputAudioContext) {
+                const source = inputAudioContext.createMediaStreamSource(mediaStream);
+                const recorder = new AudioWorkletNode(inputAudioContext, 'recorder-processor');
+
+                recorder.port.onmessage = (event) => {
+                    if (sessionPromise && isSessionActive) {
+                        sessionPromise.then(session => {
+                            if (session) session.sendRealtimeInput({ audio: createBlob(event.data) });
+                        }).catch(() => {});
+                    }
+                };
+                source.connect(recorder);
+            }
+
+            if (!isAnimating) updateLipSync();
+        }
+
+        async function handleServerMessage(message) {
+            if (message.serverContent?.outputTranscription) {
+                currentOutputText += message.serverContent.outputTranscription.text;
+            } else if (message.serverContent?.inputTranscription) {
+                currentInputText += message.serverContent.inputTranscription.text;
+            }
+
+            if (message.serverContent?.turnComplete) {
+                const userTxt = currentInputText.trim();
+                const aiTxt = currentOutputText.trim();
+                if (userTxt) addMessageToLog('user', userTxt);
+                if (aiTxt) addMessageToLog('ai', aiTxt);
+                currentInputText = ''; 
+                currentOutputText = '';
+            }
+
+            const parts = message.serverContent?.modelTurn?.parts;
+            if (parts && outputAudioContext) {
+                for (const part of parts) {
+                    const audioB64 = part.inlineData?.data;
+                    if (audioB64) {
+                        if (outputAudioContext.state === 'suspended') {
+                            await outputAudioContext.resume();
+                        }
+                        nextStartTime = Math.max(nextStartTime, outputAudioContext.currentTime);
+                        const audioBuffer = await decodeBase64ToAudioBuffer(audioB64, outputAudioContext, 24000);
+                        
+                        const source = outputAudioContext.createBufferSource();
+                        source.buffer = audioBuffer;
+                        
+                        source.connect(analyser); 
+                        source.addEventListener('ended', () => activeAudioSources.delete(source));
+                        
+                        source.start(nextStartTime);
+                        nextStartTime += audioBuffer.duration;
+                        activeAudioSources.add(source);
+
+                        if (!isAnimating) {
+                            updateLipSync();
+                        }
+                    }
+                }
+            }
+
+            if (message.serverContent?.interrupted) {
+                for (const src of activeAudioSources.values()) {
+                    try { src.stop(); } catch(e){}
+                }
+                activeAudioSources.clear();
+                nextStartTime = 0;
+            }
+        }
+
+        async function handleHttpSend(text) {
+            addMessageToLog('user', text);
+            updateStatus('Thinking...', 'active');
+            
+            try {
+                if (!ai) ai = new GoogleGenAI({ apiKey: customApiKey });
+                
+                const response = await ai.models.generateContent({
+                    model: 'gemini-2.5-flash',
+                    contents: text,
+                    config: {
+                        systemInstruction: systemInstruction
+                    }
+                });
+
+                const replyText = response.text || "ごめんなさい、うまく聞き取れませんでした。";
+                addMessageToLog('ai', replyText);
+                updateStatus('Ready', 'active');
+
+                speakText(replyText);
+
+            } catch (err) {
+                console.error("HTTP GenAI Error:", err);
+                showToast("通信エラーが発生しました", "error");
+                updateStatus('Error', 'error');
+            }
+        }
+
+        function speakText(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'ja-JP';
+                utterance.rate = 1.0;
+                utterance.pitch = 1.0;
+
+                utterance.onstart = () => startSynthLipSync();
+                utterance.onend = () => stopSynthLipSync();
+                utterance.onerror = () => stopSynthLipSync();
+
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function cleanupSession(resetActiveState = true) {
+            isSessionActive = false;
+            isAnimating = false;
+            if (resetActiveState) {
+                avatarContainer.classList.remove('is-active');
+            }
+            stopSynthLipSync();
+            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+
+            if (sessionPromise) {
+                sessionPromise.then(session => {
+                    if (session && typeof session.close === 'function') session.close();
+                }).catch(() => {});
+                sessionPromise = null;
+            }
+            
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+            
+            for (const src of activeAudioSources.values()) {
+                try { src.stop(); } catch(e){}
+            }
+            activeAudioSources.clear();
+            
+            if (inputAudioContext) inputAudioContext.close().catch(() => {});
+            if (outputAudioContext) outputAudioContext.close().catch(() => {});
+            inputAudioContext = null;
+            outputAudioContext = null;
+            analyser = null;
+            nextStartTime = 0;
+            
+            startBtn.disabled = false;
+            startBtn.classList.remove('hidden');
+            stopBtn.classList.add('hidden');
+            
+            userInput.placeholder = "メッセージ...";
+            imgTalking.classList.add('hidden-state');
+            visualizerBars.forEach(bar => bar.style.height = '4px');
+        }
+
+        startBtn.addEventListener('click', () => { 
+            if (!isSessionActive) startSession(); 
+        });
+        
+        stopBtn.addEventListener('click', () => { 
+            cleanupSession(); 
+        });
+
+        function handleTextSend() {
+            const text = userInput.value.trim();
+            if (!text) return;
+            
+            userInput.value = '';
+            
+            if (isHttpFallback || !isSessionActive) {
+                if (!isSessionActive) startHttpSession();
+                handleHttpSend(text);
+            } else if (sessionPromise) {
+                sessionPromise.then(session => {
+                    if (session) session.sendRealtimeInput({ text: text });
+                });
+            }
+        }
+
+        sendBtn.addEventListener('click', handleTextSend);
+        userInput.addEventListener('keypress', (e) => { 
+            if (e.key === 'Enter') handleTextSend(); 
+        });
+
+    </script>
+</body>
+</html>
